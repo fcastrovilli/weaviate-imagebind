@@ -1,33 +1,25 @@
 <script lang="ts">
-	import * as Accordion from '$lib/components/ui/accordion/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import type { WeaviateNonGenericObject } from 'weaviate-client';
 
-	let {
-		images = $bindable(null),
-		title = 'All Images'
-	}: { images: WeaviateNonGenericObject[] | null; title?: string } = $props();
+	let { images = $bindable(null) }: { images: WeaviateNonGenericObject[] | null } = $props();
 </script>
 
-<Accordion.Root type="multiple">
-	<Accordion.Item value="all-images">
-		<Accordion.Trigger>
-			<h2 class="text-2xl font-bold">{title}</h2>
-		</Accordion.Trigger>
-		<Accordion.Content>
-			{#if images}
-				{#each images as image}
-					<Accordion.Item value={image.uuid}>
-						<Accordion.Trigger>{image.properties.title}</Accordion.Trigger>
-						<Accordion.Content>
-							<pre>
-							{JSON.stringify(image, null, 2)}
-						</pre>
-						</Accordion.Content>
-					</Accordion.Item>
-				{/each}
-			{:else}
-				<p>No images found</p>
-			{/if}
-		</Accordion.Content>
-	</Accordion.Item>
-</Accordion.Root>
+{#if images}
+	<div class="flex flex-wrap gap-4">
+		{#each images as image (image.uuid)}
+			<Card.Root class="h-min max-w-xs" id={image.uuid}>
+				<Card.Header class="px-2 pt-2">
+					<Card.Title>{image.properties.title}</Card.Title>
+				</Card.Header>
+				<Card.Content class="p-2">
+					<img
+						class="h-auto w-full rounded-lg"
+						src={`data:image/jpeg;base64,${image.properties.image as string}`}
+						alt={image.properties.title as string}
+					/>
+				</Card.Content>
+			</Card.Root>
+		{/each}
+	</div>
+{/if}

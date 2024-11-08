@@ -11,7 +11,7 @@
 <h2 class="text-2xl font-bold">Compare Images</h2>
 <form
 	method="post"
-	action="?/queryImages"
+	action="?/queryImagesAction"
 	enctype="multipart/form-data"
 	use:enhance={() => {
 		return async ({ result }) => {
@@ -29,4 +29,4 @@
 	<Button type="submit">Compare Image</Button>
 </form>
 
-<ViewImages bind:images={queryResult} title="Query Results" />
+<ViewImages bind:images={queryResult} />

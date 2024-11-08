@@ -14,11 +14,11 @@
 		<form
 			method="post"
 			use:enhance={() => {
-				return async ({ result, update }) => {
+				return async ({ result }) => {
 					console.log(result);
 				};
 			}}
-			action="?/uploadImages"
+			action="?/uploadImagesAction"
 			enctype="multipart/form-data"
 			class="flex flex-col gap-2"
 		>

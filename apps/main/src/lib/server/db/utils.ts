@@ -8,6 +8,7 @@ export const uploadImage = async (
 	if (!collection) {
 		return null;
 	}
+
 	const batch = await collection.data.insertMany(images);
 	return batch;
 };
@@ -17,7 +18,9 @@ export const getImages = async (collection_name: string) => {
 	if (!collection) {
 		return null;
 	}
-	const images = await collection.query.fetchObjects();
+	const images = await collection.query.fetchObjects({
+		returnProperties: ['title', 'image']
+	});
 	return images.objects;
 };
 
