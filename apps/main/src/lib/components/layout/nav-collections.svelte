@@ -6,8 +6,26 @@
 	import type { CollectionConfig } from 'weaviate-client';
 	import CreateCollection from '../weaviate/CreateCollection.svelte';
 	import { page } from '$app/stores';
+	import { activeCollection } from '$lib/stores';
+	import { onMount } from 'svelte';
 
 	let { collections = [] }: { collections: CollectionConfig[] } = $props();
+
+	// Initialize from storage first
+	onMount(() => {
+		activeCollection.initializeFromStorage(collections);
+
+		// Then check URL params
+		const collectionName = $page.params.name;
+		if (collectionName) {
+			const collection = collections.find(
+				(c) => c.name.toLowerCase() === collectionName.toLowerCase()
+			);
+			if (collection && (!$activeCollection || $activeCollection.name !== collection.name)) {
+				activeCollection.set(collection);
+			}
+		}
+	});
 
 	let items = $derived([
 		{
@@ -17,7 +35,8 @@
 			items:
 				collections?.map((collection) => ({
 					title: collection.name,
-					url: `/collections/${collection.name.toLowerCase()}`
+					url: `/collections/${collection.name.toLowerCase()}`,
+					collection
 				})) ?? []
 		}
 	]);
@@ -25,16 +44,19 @@
 	// Function to check if a URL is active
 	const isActive = (url: string, isMainItem = false) => {
 		if (isMainItem) {
-			// For main items, check if current path starts with the URL
 			return $page.url.pathname.startsWith(url);
 		}
-		// For sub items, exact match
 		return $page.url.pathname === url;
 	};
 
 	// Function to check if any child item is active
 	const isGroupActive = (mainItem: (typeof items)[0]) => {
 		return mainItem.items?.some((item) => isActive(item.url)) || isActive(mainItem.url, true);
+	};
+
+	// Handle collection selection
+	const handleCollectionClick = (collection: CollectionConfig) => {
+		activeCollection.set(collection);
 	};
 </script>
 
@@ -67,7 +89,10 @@
 								<Sidebar.MenuSub>
 									{#each mainItem.items as subItem (subItem.title)}
 										<Sidebar.MenuSubItem>
-											<Sidebar.MenuSubButton isActive={isActive(subItem.url)}>
+											<Sidebar.MenuSubButton
+												isActive={isActive(subItem.url)}
+												onclick={() => handleCollectionClick(subItem.collection)}
+											>
 												{#snippet child({ props })}
 													<a href={subItem.url} {...props}>
 														<span>{subItem.title}</span>

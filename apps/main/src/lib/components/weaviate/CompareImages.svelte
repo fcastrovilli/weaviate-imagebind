@@ -3,6 +3,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { enhance } from '$app/forms';
+	import { activeCollection } from '$lib/stores';
 	import ViewImages from './ViewImages.svelte';
 
 	let queryResult: WeaviateNonGenericObject[] | null = $state(null);
@@ -24,6 +25,7 @@
 	class="flex flex-col gap-2"
 >
 	<div class="flex flex-col gap-2">
+		<input type="hidden" name="collectionName" value={$activeCollection?.name} />
 		<Label for="imagefile">Image File</Label>
 		<input id="imagefile" type="file" name="imagefile" accept="image/*" />
 	</div>

@@ -11,6 +11,7 @@
 	import JSZip from 'jszip';
 	import { enhance } from '$app/forms';
 	import type { WeaviateNonGenericObject } from 'weaviate-client';
+	import { activeCollection } from '$lib/stores';
 
 	let {
 		table
@@ -75,6 +76,7 @@
 			};
 		}}
 	>
+		<input type="hidden" name="collectionName" value={$activeCollection?.name} />
 		<input
 			type="hidden"
 			name="uuids"

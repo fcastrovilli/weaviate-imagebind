@@ -7,6 +7,7 @@
 	import X from 'lucide-svelte/icons/x';
 	import { toast } from 'svelte-sonner';
 	import { onDestroy } from 'svelte';
+	import { activeCollection } from '$lib/stores';
 
 	let fileInput: HTMLInputElement;
 	let isUploading = $state(false);
@@ -128,6 +129,7 @@
 			enctype="multipart/form-data"
 			class="flex flex-col gap-4"
 		>
+			<input type="hidden" name="collectionName" value={$activeCollection?.name} />
 			<div
 				role="button"
 				tabindex={0}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { activeCollection } from '$lib/stores';
 	import UploadImages from './components/UploadImages.svelte';
 	import { columns } from './components/columns.js';
 	import DataTable from './components/data-table.svelte';

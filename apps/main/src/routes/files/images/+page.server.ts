@@ -6,8 +6,15 @@ import {
 	uploadImagesAction
 } from '$lib/server/db/actions';
 
-export const load = async () => {
-	const images: WeaviateNonGenericObject[] | null = await getImages('Images');
+export const load = async ({ cookies, depends }) => {
+	depends('app:collection');
+	const collectionName = cookies.get('lastSelectedCollection');
+	if (!collectionName) return { images: null };
+
+	console.log(collectionName);
+
+	const images: WeaviateNonGenericObject[] | null = await getImages(collectionName);
+
 	return { images };
 };
 

@@ -2,10 +2,11 @@ import type { Action } from '@sveltejs/kit';
 import { queryImages, serializeNonPOJOs, uploadImage } from './utils';
 import type { BatchObjectsReturn } from 'weaviate-client';
 import { createImageCollection, deleteCollection, getCollection } from './collections';
-import { createCollection } from './create';
+import { createCollection } from './create.js';
 
 export const uploadImagesAction: Action = async ({ request }) => {
 	const formData = await request.formData();
+	const collectionName = formData.get('collectionName') as string;
 	let result: BatchObjectsReturn<undefined> | null = null;
 	const imageBlobs = formData.getAll('imagefiles') as File[];
 	const imageFiles: { title: string; image: string }[] = [];
@@ -18,18 +19,19 @@ export const uploadImagesAction: Action = async ({ request }) => {
 					.then((buffer) => Buffer.from(buffer).toString('base64'))
 			});
 		}
-		result = await uploadImage('Images', imageFiles);
+		result = await uploadImage(collectionName, imageFiles);
 	}
 	return result ?? null;
 };
 
 export const queryImagesAction: Action = async ({ request }) => {
 	const formData = await request.formData();
+	const collectionName = formData.get('collectionName') as string;
 	const imageBlob = formData.get('imagefile') as File;
 	const image = await imageBlob
 		.arrayBuffer()
 		.then((buffer) => Buffer.from(buffer).toString('base64'));
-	const result = await queryImages('Images', image, 5);
+	const result = await queryImages(collectionName, image, 5);
 	return result;
 };
 
@@ -50,9 +52,10 @@ export const deleteCollectionAction: Action = async ({ request }) => {
 export const deleteImageAction: Action = async ({ request }) => {
 	const formData = await request.formData();
 	const uuid = formData.get('uuid') as string;
+	const collectionName = formData.get('collectionName') as string;
 
 	try {
-		const collection = await getCollection('Images');
+		const collection = await getCollection(collectionName);
 		if (!collection) {
 			return { success: false, error: 'Collection not found' };
 		}
@@ -68,9 +71,10 @@ export const deleteImageAction: Action = async ({ request }) => {
 export const deleteBulkImagesAction: Action = async ({ request }) => {
 	const formData = await request.formData();
 	const uuids = JSON.parse(formData.get('uuids') as string) as string[];
+	const collectionName = formData.get('collectionName') as string;
 
 	try {
-		const collection = await getCollection('Images');
+		const collection = await getCollection(collectionName);
 		if (!collection) {
 			return { success: false, error: 'Collection not found' };
 		}

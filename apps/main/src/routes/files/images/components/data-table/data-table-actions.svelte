@@ -4,6 +4,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
+	import { activeCollection } from '$lib/stores';
 
 	let { image, title, uuid }: { image: string; title: string; uuid: string } = $props();
 
@@ -24,6 +25,7 @@
 		};
 	}}
 >
+	<input type="hidden" name="collectionName" value={$activeCollection?.name} />
 	<input type="hidden" name="uuid" value={uuid} />
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger>
