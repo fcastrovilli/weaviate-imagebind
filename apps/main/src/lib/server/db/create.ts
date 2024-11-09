@@ -47,6 +47,8 @@ export async function createCollection({ name, description, mediaType }: CreateC
 			...(mediaType === 'text' && { textFields: [{ name: 'title', weight: 1.0 }] })
 		};
 
+		console.log(vectorizerFields);
+
 		const collection = await client.collections.create({
 			name: cleanedName,
 			description: description || `Collection for ${mediaType} content`,
@@ -54,6 +56,7 @@ export async function createCollection({ name, description, mediaType }: CreateC
 			vectorizers: [weaviate.configure.vectorizer.multi2VecBind(vectorizerFields)]
 		});
 
+		console.log(collection);
 		return collection;
 	} catch (error) {
 		console.error('Error creating collection:', error);

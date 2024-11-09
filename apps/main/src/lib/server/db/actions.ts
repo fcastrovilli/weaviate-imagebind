@@ -88,6 +88,7 @@ export const createCollectionAction: Action = async ({ request }) => {
 	const name = formData.get('name') as string;
 	const description = formData.get('description') as string | undefined;
 	const mediaType = formData.get('mediaType') as 'audio' | 'image' | 'text' | 'video';
+	console.log(name, description, mediaType);
 
 	if (!name || !mediaType) {
 		return {
@@ -103,6 +104,7 @@ export const createCollectionAction: Action = async ({ request }) => {
 			mediaType
 		});
 
+		console.log(result);
 		return {
 			success: true,
 			collection: serializeNonPOJOs(result)
