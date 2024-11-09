@@ -5,7 +5,7 @@
 	import NavUser from './nav-user.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
-	// import CollectionSwitcher from './collection-switcher.svelte';
+	import CollectionSwitcher from './collection-switcher.svelte';
 	import type { CollectionConfig } from 'weaviate-client';
 	import NavPlayground from './nav-playground.svelte';
 
@@ -34,7 +34,7 @@
 				</div>
 			</Sidebar.MenuButton>
 		</a>
-		<!-- <CollectionSwitcher {collections} /> -->
+		<CollectionSwitcher {collections} />
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavPlayground />
