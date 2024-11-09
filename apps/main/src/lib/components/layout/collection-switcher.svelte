@@ -7,15 +7,10 @@
 	import type { CollectionConfig } from 'weaviate-client';
 	import { activeCollection } from '$lib/stores';
 	import CreateCollection from '../weaviate/CreateCollection.svelte';
-	import { onMount } from 'svelte';
 
 	const sidebar = useSidebar();
 
 	let { collections }: { collections: CollectionConfig[] } = $props();
-
-	onMount(() => {
-		$activeCollection = collections[0];
-	});
 </script>
 
 <Sidebar.Menu>

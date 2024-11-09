@@ -6,16 +6,15 @@
 	import Trash from 'lucide-svelte/icons/trash';
 	import Download from 'lucide-svelte/icons/download';
 	import type { Table } from '@tanstack/table-core';
-	import type { WeaviateImage } from '../columns.js';
+
 	import JSZip from 'jszip';
 	import { enhance } from '$app/forms';
+	import type { WeaviateNonGenericObject } from 'weaviate-client';
 
 	let {
-		table,
-		onBulkDelete
+		table
 	}: {
-		table: Table<WeaviateImage>;
-		onBulkDelete: (selectedRows: WeaviateImage[]) => void;
+		table: Table<WeaviateNonGenericObject>;
 	} = $props();
 
 	async function handleBulkDownload() {
@@ -27,7 +26,7 @@
 			const image = row.original.properties.image;
 			const title = row.original.properties.title;
 
-			// Convert base64 to blob
+			if (!image || typeof image !== 'string') continue;
 			const imageData = atob(image);
 			const arrayBuffer = new ArrayBuffer(imageData.length);
 			const uint8Array = new Uint8Array(arrayBuffer);
@@ -92,11 +91,9 @@
 	</form>
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger>
-			{#snippet child({ props })}
-				<Button variant="outline" class="ml-auto" {...props}>
-					Columns <ChevronDown class="ml-2 size-4" />
-				</Button>
-			{/snippet}
+			<Button variant="outline" class="ml-auto">
+				Columns <ChevronDown class="ml-2 size-4" />
+			</Button>
 		</DropdownMenu.Trigger>
 		<DropdownMenu.Content align="end">
 			{#each table.getAllColumns().filter((col) => col.getCanHide()) as column}

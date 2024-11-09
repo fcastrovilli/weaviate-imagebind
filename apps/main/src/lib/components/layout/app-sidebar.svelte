@@ -2,11 +2,10 @@
 	import { site_data as data } from './constants';
 	import AudioWaveform from 'lucide-svelte/icons/audio-waveform';
 	import NavMain from './nav-main.svelte';
-	// import NavProjects from './nav-projects.svelte';
 	import NavUser from './nav-user.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
-	import CollectionSwitcher from './collection-switcher.svelte';
+	// import CollectionSwitcher from './collection-switcher.svelte';
 	import type { CollectionConfig } from 'weaviate-client';
 	import NavPlayground from './nav-playground.svelte';
 
@@ -20,11 +19,11 @@
 
 <Sidebar.Root bind:ref {collapsible} {...restProps}>
 	<Sidebar.Header>
-		<Sidebar.MenuButton
-			size="lg"
-			class="data-[state=open]:bg-sidebar data-[state=open]:text-sidebar-foreground"
-		>
-			<a href="/" class="flex items-center gap-2">
+		<a href="/" class="flex items-center gap-2">
+			<Sidebar.MenuButton
+				size="lg"
+				class="data-[state=open]:bg-sidebar data-[state=open]:text-sidebar-foreground"
+			>
 				<div
 					class="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground"
 				>
@@ -33,13 +32,12 @@
 				<div class="grid flex-1 text-left text-sm leading-tight">
 					<span class="truncate font-semibold"> CWAVASAPE </span>
 				</div>
-			</a>
-		</Sidebar.MenuButton>
-		<CollectionSwitcher {collections} />
+			</Sidebar.MenuButton>
+		</a>
+		<!-- <CollectionSwitcher {collections} /> -->
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavPlayground />
-		<!-- <NavProjects projects={data.projects} /> -->
 		<NavMain {collections} />
 	</Sidebar.Content>
 	<Sidebar.Footer>

@@ -4,7 +4,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import Database from 'lucide-svelte/icons/database';
-	import UploadImages from '$lib/components/weaviate/UploadImages.svelte';
+
 	import ViewImages from '$lib/components/weaviate/ViewImages.svelte';
 	import CompareImages from '$lib/components/weaviate/CompareImages.svelte';
 
@@ -89,7 +89,8 @@
 					<Card.Description>Add new images to your collection</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<UploadImages />
+					Upload Images
+					<!-- <UploadImages /> -->
 				</Card.Content>
 			</Card.Root>
 		</Tabs.Content>

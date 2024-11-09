@@ -15,15 +15,14 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import DataTableToolbar from './data-table/data-table-toolbar.svelte';
-	import type { WeaviateImage } from './columns.js';
+	import type { WeaviateNonGenericObject } from 'weaviate-client';
 
 	type DataTableProps = {
-		columns: ColumnDef<WeaviateImage, unknown>[];
-		data: WeaviateImage[];
-		onBulkDelete?: (selectedRows: WeaviateImage[]) => void;
+		columns: ColumnDef<WeaviateNonGenericObject, unknown>[];
+		data: WeaviateNonGenericObject[] | null;
 	};
 
-	let { data, columns, onBulkDelete = () => {} }: DataTableProps = $props();
+	let { data, columns }: DataTableProps = $props();
 	let reactive_data = $derived(data);
 
 	// State
@@ -33,9 +32,9 @@
 	let columnVisibility = $state<VisibilityState>({});
 	let rowSelection = $state<RowSelectionState>({});
 
-	const table = createSvelteTable<WeaviateImage>({
+	const table = createSvelteTable<WeaviateNonGenericObject>({
 		get data() {
-			return reactive_data;
+			return reactive_data ?? [];
 		},
 		columns,
 		getCoreRowModel: getCoreRowModel(),
@@ -98,7 +97,7 @@
 </script>
 
 <div class="w-full space-y-4">
-	<DataTableToolbar {table} {onBulkDelete} />
+	<DataTableToolbar {table} />
 
 	<div class="rounded-md border">
 		<Table.Root>

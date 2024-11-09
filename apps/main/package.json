@@ -44,12 +44,14 @@
 		"tailwindcss-animate": "^1.0.7",
 		"typescript": "^5.0.0",
 		"typescript-eslint": "^8.0.0",
+		"vaul-svelte": "1.0.0-next.2",
 		"vite": "^5.0.3",
 		"zod": "^3.23.8"
 	},
 	"dependencies": {
 		"@tanstack/table-core": "^8.20.5",
 		"jszip": "^3.10.1",
+		"runed": "^0.15.3",
 		"weaviate-client": "^3.2.2"
 	}
 }

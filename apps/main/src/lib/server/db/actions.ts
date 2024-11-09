@@ -17,7 +17,7 @@ export const uploadImagesAction: Action = async ({ request }) => {
 					.then((buffer) => Buffer.from(buffer).toString('base64'))
 			});
 		}
-		result = await uploadImage('Imagetest', imageFiles);
+		result = await uploadImage('Images', imageFiles);
 	}
 	return result ?? null;
 };

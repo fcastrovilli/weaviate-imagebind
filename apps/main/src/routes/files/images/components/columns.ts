@@ -7,14 +7,7 @@ import ImagePreviewDialog from './image-preview-dialog.svelte';
 import DataTableActions from './data-table/data-table-actions.svelte';
 import DataTableTitleButton from './data-table/data-table-title-button.svelte';
 
-export type WeaviateImage = WeaviateNonGenericObject & {
-	properties: {
-		title: string;
-		image: string;
-	};
-};
-
-export const columns: ColumnDef<WeaviateImage>[] = [
+export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 	{
 		id: 'select',
 		header: ({ table }) =>
