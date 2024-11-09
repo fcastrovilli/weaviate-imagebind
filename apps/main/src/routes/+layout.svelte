@@ -2,6 +2,7 @@
 	import AppSidebar from '$lib/components/layout/app-sidebar.svelte';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import { Toaster } from '$lib/components/ui/sonner/index.js';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 
 	import '../app.css';
@@ -22,6 +23,7 @@
 			</div>
 		</header>
 		<div class="flex flex-1 flex-col gap-4 p-4 pt-0">
+			<Toaster />
 			{@render children?.()}
 		</div>
 	</Sidebar.Inset>

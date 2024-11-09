@@ -29,12 +29,14 @@
 		"formsnap": "2.0.0-next.1",
 		"globals": "^15.0.0",
 		"lucide-svelte": "^0.455.0",
+		"mode-watcher": "^0.4.1",
 		"prettier": "^3.3.2",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.5",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
 		"svelte-radix": "^2.0.1",
+		"svelte-sonner": "^0.3.28",
 		"sveltekit-superforms": "^2.20.0",
 		"tailwind-merge": "^2.5.4",
 		"tailwind-variants": "^0.2.1",
@@ -46,6 +48,8 @@
 		"zod": "^3.23.8"
 	},
 	"dependencies": {
+		"@tanstack/table-core": "^8.20.5",
+		"jszip": "^3.10.1",
 		"weaviate-client": "^3.2.2"
 	}
 }

@@ -1,7 +1,7 @@
 import type { Action } from '@sveltejs/kit';
-import { queryImages, uploadImage } from './utils';
+import { queryImages, serializeNonPOJOs, uploadImage } from './utils';
 import type { BatchObjectsReturn } from 'weaviate-client';
-import { createImageCollection } from './collections';
+import { createImageCollection, deleteCollection, getCollection } from './collections';
 
 export const uploadImagesAction: Action = async ({ request }) => {
 	const formData = await request.formData();
@@ -36,5 +36,48 @@ export const createImageCollectionAction: Action = async ({ request }) => {
 	const formData = await request.formData();
 	const collectionName = formData.get('collectionName') as string;
 	const result = await createImageCollection(collectionName);
-	return { result: result.name ?? null };
+	return serializeNonPOJOs(result);
+};
+
+export const deleteCollectionAction: Action = async ({ request }) => {
+	const formData = await request.formData();
+	const collectionName = formData.get('collectionName') as string;
+	const result = await deleteCollection(collectionName);
+	return { result };
+};
+
+export const deleteImageAction: Action = async ({ request }) => {
+	const formData = await request.formData();
+	const uuid = formData.get('uuid') as string;
+
+	try {
+		const collection = await getCollection('Images');
+		if (!collection) {
+			return { success: false, error: 'Collection not found' };
+		}
+
+		await collection.data.deleteById(uuid);
+		return { success: true };
+	} catch (error) {
+		console.error('Error deleting image:', error);
+		return { success: false, error: 'Failed to delete image' };
+	}
+};
+
+export const deleteBulkImagesAction: Action = async ({ request }) => {
+	const formData = await request.formData();
+	const uuids = JSON.parse(formData.get('uuids') as string) as string[];
+
+	try {
+		const collection = await getCollection('Images');
+		if (!collection) {
+			return { success: false, error: 'Collection not found' };
+		}
+
+		await collection.data.deleteMany(collection.filter.byId().containsAny(uuids));
+		return { success: true };
+	} catch (error) {
+		console.error('Error deleting images:', error);
+		return { success: false, error: 'Failed to delete images' };
+	}
 };

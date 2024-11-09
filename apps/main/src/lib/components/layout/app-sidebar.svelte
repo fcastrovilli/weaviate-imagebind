@@ -2,12 +2,13 @@
 	import { site_data as data } from './constants';
 	import AudioWaveform from 'lucide-svelte/icons/audio-waveform';
 	import NavMain from './nav-main.svelte';
-	import NavProjects from './nav-projects.svelte';
+	// import NavProjects from './nav-projects.svelte';
 	import NavUser from './nav-user.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
 	import CollectionSwitcher from './collection-switcher.svelte';
 	import type { CollectionConfig } from 'weaviate-client';
+	import NavPlayground from './nav-playground.svelte';
 
 	let {
 		ref = $bindable(null),
@@ -37,8 +38,9 @@
 		<CollectionSwitcher {collections} />
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<NavMain items={data.navMain} />
-		<NavProjects projects={data.projects} />
+		<NavPlayground />
+		<!-- <NavProjects projects={data.projects} /> -->
+		<NavMain {collections} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<NavUser user={data.user} />

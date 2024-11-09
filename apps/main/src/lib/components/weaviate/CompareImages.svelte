@@ -14,10 +14,11 @@
 	action="?/queryImagesAction"
 	enctype="multipart/form-data"
 	use:enhance={() => {
-		return async ({ result }) => {
+		return async ({ result, update }) => {
 			if (result.type === 'success') {
 				queryResult = result.data?.objects as unknown as WeaviateNonGenericObject[];
 			}
+			update();
 		};
 	}}
 	class="flex flex-col gap-2"

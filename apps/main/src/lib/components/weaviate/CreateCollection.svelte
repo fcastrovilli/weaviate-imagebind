@@ -5,10 +5,12 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { enhance } from '$app/forms';
 	import Plus from 'lucide-svelte/icons/plus';
+	import { toast } from 'svelte-sonner';
+	let isOpen = $state(false);
 </script>
 
-<Dialog.Root>
-	<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}>
+<Dialog.Root bind:open={isOpen}>
+	<Dialog.Trigger class={buttonVariants({ variant: 'secondary', size: 'lg' })}>
 		<div class="flex size-6 items-center justify-center rounded-md border bg-background">
 			<Plus class="size-4" />
 		</div>
@@ -16,9 +18,17 @@
 	</Dialog.Trigger>
 	<Dialog.Content class="sm:max-w-[425px]">
 		<form
-			use:enhance
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'success') {
+						isOpen = false;
+						toast.success(`Collection ${result.data?.name as string} created successfully`);
+					}
+					update();
+				};
+			}}
 			method="POST"
-			action="?/createImageCollectionAction"
+			action="/?/createImageCollectionAction"
 			class="flex flex-col gap-2"
 		>
 			<Dialog.Header>

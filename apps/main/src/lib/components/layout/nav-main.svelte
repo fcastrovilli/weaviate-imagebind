@@ -2,30 +2,42 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import Folder from 'lucide-svelte/icons/folder';
+	import NavCollections from './nav-collections.svelte';
+	import type { CollectionConfig } from 'weaviate-client';
 
-	let {
-		items
-	}: {
-		items: {
-			title: string;
-			url: string;
-			// this should be `Component` after lucide-svelte updates types
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			icon?: any;
-			isActive?: boolean;
-			items?: {
-				title: string;
-				url: string;
-			}[];
-		}[];
-	} = $props();
+	let { collections }: { collections: CollectionConfig[] } = $props();
+	let items = [
+		{
+			title: 'Files',
+			icon: Folder,
+			items: [
+				{
+					title: 'Images',
+					url: '/files/images'
+				},
+				{
+					title: 'Audios',
+					url: '/files/audios'
+				},
+				{
+					title: 'Videos',
+					url: '/files/videos'
+				},
+				{
+					title: 'Texts',
+					url: '/files/texts'
+				}
+			]
+		}
+	];
 </script>
 
 <Sidebar.Group>
-	<Sidebar.GroupLabel>Main</Sidebar.GroupLabel>
+	<Sidebar.GroupLabel>Settings</Sidebar.GroupLabel>
 	<Sidebar.Menu>
 		{#each items as mainItem (mainItem.title)}
-			<Collapsible.Root open={mainItem.isActive} class="group/collapsible">
+			<Collapsible.Root class="group/collapsible">
 				{#snippet child({ props })}
 					<Sidebar.MenuItem {...props}>
 						<Collapsible.Trigger>
@@ -66,4 +78,5 @@
 			</Collapsible.Root>
 		{/each}
 	</Sidebar.Menu>
+	<NavCollections {collections} />
 </Sidebar.Group>

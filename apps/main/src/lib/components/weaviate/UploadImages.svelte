@@ -14,8 +14,9 @@
 		<form
 			method="post"
 			use:enhance={() => {
-				return async ({ result }) => {
+				return async ({ result, update }) => {
 					console.log(result);
+					update();
 				};
 			}}
 			action="?/uploadImagesAction"

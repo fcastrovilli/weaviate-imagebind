@@ -1,7 +1,1 @@
-<script lang="ts">
-	import ViewImages from '$lib/components/weaviate/ViewImages.svelte';
-
-	let { data } = $props();
-</script>
-
-<ViewImages images={data.images} />
+<h1 class="text-2xl font-bold">Home</h1>

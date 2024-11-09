@@ -7,12 +7,15 @@
 	import type { CollectionConfig } from 'weaviate-client';
 	import { activeCollection } from '$lib/stores';
 	import CreateCollection from '../weaviate/CreateCollection.svelte';
+	import { onMount } from 'svelte';
 
 	const sidebar = useSidebar();
 
 	let { collections }: { collections: CollectionConfig[] } = $props();
 
-	$activeCollection = collections[0];
+	onMount(() => {
+		$activeCollection = collections[0];
+	});
 </script>
 
 <Sidebar.Menu>
@@ -47,7 +50,7 @@
 				sideOffset={4}
 			>
 				<DropdownMenu.Label class="text-xs text-muted-foreground">Collections</DropdownMenu.Label>
-				{#each collections as collection, index (collection.name)}
+				{#each collections as collection (collection.name)}
 					<DropdownMenu.Item onSelect={() => ($activeCollection = collection)} class="gap-2 p-2">
 						<div class="flex size-6 items-center justify-center rounded-sm border">
 							<Database class="size-4 shrink-0" />
