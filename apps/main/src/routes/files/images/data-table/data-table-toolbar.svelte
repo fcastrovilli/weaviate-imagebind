@@ -8,6 +8,7 @@
 	import type { Table } from '@tanstack/table-core';
 	import type { WeaviateImage } from '../columns.js';
 	import JSZip from 'jszip';
+	import { enhance } from '$app/forms';
 
 	let {
 		table,
