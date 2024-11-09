@@ -17,8 +17,8 @@
 
 	// Convert route segments into proper breadcrumb items
 	let items: BreadcrumbItem[] = $derived(
-		($page.route.id?.split('/').slice(1) ?? []).map((segment) => ({
-			href: segment || undefined,
+		($page.url.pathname.split('/').slice(1) ?? []).map((segment, index, array) => ({
+			href: '/' + (index === 0 ? segment : array.slice(0, index + 1).join('/')),
 			label: capitalize(segment || 'Home')
 		}))
 	);

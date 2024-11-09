@@ -6,6 +6,7 @@
 	import Trash from 'lucide-svelte/icons/trash';
 	import Download from 'lucide-svelte/icons/download';
 	import type { Table } from '@tanstack/table-core';
+	import { toast } from 'svelte-sonner';
 
 	import JSZip from 'jszip';
 	import { enhance } from '$app/forms';
@@ -52,7 +53,7 @@
 	}
 </script>
 
-<div class="flex items-center py-4">
+<div class="flex w-full items-center justify-between gap-4 py-4">
 	<Input
 		placeholder="Filter titles..."
 		value={(table.getColumn('title')?.getFilterValue() as string) ?? ''}
@@ -66,7 +67,10 @@
 		use:enhance={() => {
 			return async ({ result, update }) => {
 				if (result.type === 'success') {
+					toast.success('Images deleted successfully');
 					update();
+				} else {
+					toast.error('Images deletion failed');
 				}
 			};
 		}}

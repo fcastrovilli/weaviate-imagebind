@@ -1,8 +1,10 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { enhance } from '$app/forms';
+	import { toast } from 'svelte-sonner';
 
-	let { image, title }: { image: string; title: string } = $props();
+	let { image, title, uuid }: { image: string; title: string; uuid: string } = $props();
 
 	const imageSource = `data:image/jpeg;base64,${image}`;
 </script>
@@ -27,17 +29,35 @@
 			/>
 		</div>
 		<Dialog.Footer>
-			<Button
-				variant="outline"
-				onclick={() => {
-					const link = document.createElement('a');
-					link.href = imageSource;
-					link.download = `${title}.jpg`;
-					link.click();
+			<form
+				method="POST"
+				action="?/deleteImage"
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						if (result.type === 'success') {
+							toast.success('Image deleted successfully');
+							update();
+						} else {
+							toast.error('Image deletion failed');
+						}
+					};
 				}}
+				class="flex gap-2"
 			>
-				Download
-			</Button>
+				<input type="hidden" name="uuid" value={uuid} />
+				<Button
+					variant="outline"
+					onclick={() => {
+						const link = document.createElement('a');
+						link.href = imageSource;
+						link.download = `${title}.jpg`;
+						link.click();
+					}}
+				>
+					Download
+				</Button>
+				<Button type="submit" variant="destructive">Delete</Button>
+			</form>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

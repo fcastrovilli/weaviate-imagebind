@@ -2,6 +2,7 @@ import type { Action } from '@sveltejs/kit';
 import { queryImages, serializeNonPOJOs, uploadImage } from './utils';
 import type { BatchObjectsReturn } from 'weaviate-client';
 import { createImageCollection, deleteCollection, getCollection } from './collections';
+import { createCollection } from './create';
 
 export const uploadImagesAction: Action = async ({ request }) => {
 	const formData = await request.formData();
@@ -79,5 +80,38 @@ export const deleteBulkImagesAction: Action = async ({ request }) => {
 	} catch (error) {
 		console.error('Error deleting images:', error);
 		return { success: false, error: 'Failed to delete images' };
+	}
+};
+
+export const createCollectionAction: Action = async ({ request }) => {
+	const formData = await request.formData();
+	const name = formData.get('name') as string;
+	const description = formData.get('description') as string | undefined;
+	const mediaType = formData.get('mediaType') as 'audio' | 'image' | 'text' | 'video';
+
+	if (!name || !mediaType) {
+		return {
+			success: false,
+			error: 'Name and media type are required'
+		};
+	}
+
+	try {
+		const result = await createCollection({
+			name,
+			description,
+			mediaType
+		});
+
+		return {
+			success: true,
+			collection: serializeNonPOJOs(result)
+		};
+	} catch (error) {
+		console.error('Error creating collection:', error);
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : 'Failed to create collection'
+		};
 	}
 };

@@ -8,6 +8,7 @@
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import SquareTerminal from 'lucide-svelte/icons/square-terminal';
 	import History from 'lucide-svelte/icons/history';
+	import { page } from '$app/stores';
 
 	const sidebar = useSidebar();
 
@@ -15,6 +16,11 @@
 		{ name: 'Inference', url: '/', icon: SquareTerminal },
 		{ name: 'History', url: '/', icon: History }
 	];
+
+	// Function to check if a URL is active
+	const isActive = (url: string) => {
+		return $page.url.pathname === url;
+	};
 </script>
 
 <Sidebar.Group class="group-data-[collapsible=icon]:hidden">
@@ -22,7 +28,7 @@
 	<Sidebar.Menu>
 		{#each playgroundItems as item (item.name)}
 			<Sidebar.MenuItem>
-				<Sidebar.MenuButton>
+				<Sidebar.MenuButton isActive={isActive(item.url)}>
 					{#snippet child({ props })}
 						<a href={item.url} {...props}>
 							<item.icon />

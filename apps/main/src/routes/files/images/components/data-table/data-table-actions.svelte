@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { enhance } from '$app/forms';
+	import { toast } from 'svelte-sonner';
 
 	let { image, title, uuid }: { image: string; title: string; uuid: string } = $props();
 
@@ -15,7 +16,10 @@
 	use:enhance={() => {
 		return async ({ result, update }) => {
 			if (result.type === 'success') {
+				toast.success('Image deleted successfully');
 				update();
+			} else {
+				toast.error('Image deletion failed');
 			}
 		};
 	}}

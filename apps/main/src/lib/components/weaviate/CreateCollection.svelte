@@ -28,7 +28,7 @@
 				};
 			}}
 			method="POST"
-			action="/?/createImageCollectionAction"
+			action="/collections?/createImageCollectionAction"
 			class="flex flex-col gap-2"
 		>
 			<Dialog.Header>

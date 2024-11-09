@@ -28,6 +28,13 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 		enableHiding: false
 	},
 	{
+		id: 'uuid',
+		accessorFn: (row) => row.uuid,
+		enableSorting: false,
+		enableHiding: true,
+		enableColumnFilter: false
+	},
+	{
 		id: 'title',
 		accessorFn: (row) => row.properties.title,
 		header: ({ column }) =>
@@ -53,7 +60,8 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 		cell: ({ row }) => {
 			return renderComponent(ImagePreviewDialog, {
 				image: row.getValue<string>('image'),
-				title: row.getValue<string>('title')
+				title: row.getValue<string>('title'),
+				uuid: row.original.uuid
 			});
 		},
 		enableHiding: true

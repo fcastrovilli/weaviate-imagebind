@@ -29,7 +29,9 @@
 	let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: 8 });
 	let sorting = $state<SortingState>([]);
 	let columnFilters = $state<ColumnFiltersState>([]);
-	let columnVisibility = $state<VisibilityState>({});
+	let columnVisibility = $state<VisibilityState>({
+		uuid: false
+	});
 	let rowSelection = $state<RowSelectionState>({});
 
 	const table = createSvelteTable<WeaviateNonGenericObject>({
@@ -118,7 +120,7 @@
 				{/each}
 			</Table.Header>
 			<Table.Body>
-				{#each table.getRowModel().rows as row (row.id)}
+				{#each table.getRowModel().rows as row (row.getValue('uuid'))}
 					<Table.Row data-state={row.getIsSelected() && 'selected'}>
 						{#each row.getVisibleCells() as cell (cell.id)}
 							<Table.Cell>
