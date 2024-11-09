@@ -11,8 +11,6 @@ export const load = async ({ cookies, depends }) => {
 	const collectionName = cookies.get('lastSelectedCollection');
 	if (!collectionName) return { images: null };
 
-	console.log(collectionName);
-
 	const images: WeaviateNonGenericObject[] | null = await getImages(collectionName);
 
 	return { images };
