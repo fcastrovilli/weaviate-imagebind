@@ -10,6 +10,17 @@
 
 	let open = $state(false);
 	let values = $state<string[]>([]);
+	let name = $state('');
+
+	// Format name as user types
+	function handleNameInput(event: Event) {
+		const input = event.target as HTMLInputElement;
+		name = input.value
+			.toLowerCase()
+			.replace(/\s+/g, '')
+			.replace(/[^a-z0-9]/g, '');
+		input.value = name;
+	}
 
 	const mediaTypes = [
 		{ value: 'audio', label: 'Audio' },
@@ -50,7 +61,7 @@
 				};
 			}}
 			method="POST"
-			action="/collections?/createCollectionAction"
+			action="?/createCollectionAction"
 			class="flex flex-col gap-4"
 		>
 			<Dialog.Header>
@@ -62,7 +73,20 @@
 
 			<div class="flex flex-col gap-2">
 				<Label for="name">Collection Name</Label>
-				<Input id="name" name="name" placeholder="MyCollection" required />
+				<Input
+					id="name"
+					name="name"
+					bind:value={name}
+					oninput={handleNameInput}
+					placeholder="mycollection"
+					required
+					pattern="[a-z0-9]+"
+					title="Use only lowercase letters and numbers, no spaces"
+				/>
+				<span class="text-xs text-muted-foreground">
+					Use only lowercase letters and numbers, no spaces. First letter will be capitalized
+					automatically.
+				</span>
 			</div>
 
 			<div class="flex flex-col gap-2">
@@ -91,7 +115,7 @@
 			</div>
 
 			<Dialog.Footer>
-				<Button type="submit" disabled={values.length === 0}>Create Collection</Button>
+				<Button type="submit" disabled={values.length === 0 || !name}>Create Collection</Button>
 			</Dialog.Footer>
 		</form>
 	</Dialog.Content>

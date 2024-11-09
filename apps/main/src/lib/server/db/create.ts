@@ -7,13 +7,29 @@ type DataType = 'text' | 'blob';
 interface CreateCollectionProps {
 	name: string;
 	description?: string;
-	mediaType: MediaType;
+	mediaTypes: MediaType[];
 }
 
-export async function createCollection({ name, description, mediaType }: CreateCollectionProps) {
+function formatCollectionName(name: string): string {
+	return name
+		.trim()
+		.toLowerCase()
+		.replace(/\s+/g, '') // Remove all spaces
+		.replace(/[^a-z0-9]/g, '') // Remove special characters
+		.replace(/^\d+/, '') // Remove leading numbers
+		.replace(/^[a-z]/, (c) => c.toUpperCase()); // Capitalize first letter
+}
+
+export async function createCollection({ name, description, mediaTypes }: CreateCollectionProps) {
 	try {
 		const client = await getClient();
-		const cleanedName = name.charAt(0).toUpperCase() + name.slice(1);
+		const cleanedName = formatCollectionName(name);
+
+		if (!cleanedName) {
+			throw new Error(
+				'Invalid collection name. Please use alphanumeric characters without spaces.'
+			);
+		}
 
 		// Define base properties that all collections will have
 		const properties: {
@@ -29,34 +45,47 @@ export async function createCollection({ name, description, mediaType }: CreateC
 				description: 'Title of the content',
 				indexFilterable: true,
 				indexSearchable: true
-			},
-			{
-				name: 'content',
-				dataType: 'blob',
-				description: `${mediaType} content stored as blob`,
-				indexFilterable: true
 			}
 		];
 
-		// Configure vectorizer based on media type
-		const vectorizerFields = {
-			textFields: [{ name: 'title', weight: 0.3 }],
-			...(mediaType === 'audio' && { audioFields: [{ name: 'content', weight: 0.7 }] }),
-			...(mediaType === 'image' && { imageFields: [{ name: 'content', weight: 0.7 }] }),
-			...(mediaType === 'video' && { videoFields: [{ name: 'content', weight: 0.7 }] }),
-			...(mediaType === 'text' && { textFields: [{ name: 'title', weight: 1.0 }] })
-		};
+		// Add a content property for each media type
+		mediaTypes.forEach((mediaType) => {
+			properties.push({
+				name: `${mediaType}Content`,
+				dataType: 'blob',
+				description: `${mediaType} content stored as blob`,
+				indexFilterable: true
+			});
+		});
 
-		console.log(vectorizerFields);
+		// Configure vectorizer for all selected media types
+		const vectorizerConfig = {
+			name: 'multi_content_vectorizer',
+			textFields: [{ name: 'title', weight: 0.3 }],
+			...(mediaTypes.includes('audio') && {
+				audioFields: [{ name: 'audioContent', weight: 0.7 }]
+			}),
+			...(mediaTypes.includes('image') && {
+				imageFields: [{ name: 'imageContent', weight: 0.7 }]
+			}),
+			...(mediaTypes.includes('video') && {
+				videoFields: [{ name: 'videoContent', weight: 0.7 }]
+			}),
+			...(mediaTypes.includes('text') && {
+				textFields: [
+					{ name: 'title', weight: 0.3 },
+					{ name: 'textContent', weight: 0.7 }
+				]
+			})
+		};
 
 		const collection = await client.collections.create({
 			name: cleanedName,
-			description: description || `Collection for ${mediaType} content`,
+			description: description || `Collection for ${mediaTypes.join(', ')} content`,
 			properties: properties,
-			vectorizers: [weaviate.configure.vectorizer.multi2VecBind(vectorizerFields)]
+			vectorizers: [weaviate.configure.vectorizer.multi2VecBind(vectorizerConfig)]
 		});
 
-		console.log(collection);
 		return collection;
 	} catch (error) {
 		console.error('Error creating collection:', error);

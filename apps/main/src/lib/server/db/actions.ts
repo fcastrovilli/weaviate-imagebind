@@ -87,13 +87,12 @@ export const createCollectionAction: Action = async ({ request }) => {
 	const formData = await request.formData();
 	const name = formData.get('name') as string;
 	const description = formData.get('description') as string | undefined;
-	const mediaType = formData.get('mediaType') as 'audio' | 'image' | 'text' | 'video';
-	console.log(name, description, mediaType);
+	const mediaTypes = formData.getAll('mediaTypes') as string[];
 
-	if (!name || !mediaType) {
+	if (!name || mediaTypes.length === 0) {
 		return {
 			success: false,
-			error: 'Name and media type are required'
+			error: 'Name and at least one media type are required'
 		};
 	}
 
@@ -101,10 +100,9 @@ export const createCollectionAction: Action = async ({ request }) => {
 		const result = await createCollection({
 			name,
 			description,
-			mediaType
+			mediaTypes: mediaTypes as ('audio' | 'image' | 'text' | 'video')[]
 		});
 
-		console.log(result);
 		return {
 			success: true,
 			collection: serializeNonPOJOs(result)
@@ -113,7 +111,7 @@ export const createCollectionAction: Action = async ({ request }) => {
 		console.error('Error creating collection:', error);
 		return {
 			success: false,
-			error: error instanceof Error ? error.message : 'Failed to create collection'
+			error: error instanceof Error ? error.message : 'Failed to create collections'
 		};
 	}
 };
