@@ -1,6 +1,10 @@
 import { getTexts } from '$lib/server/db/utils';
 import type { WeaviateNonGenericObject } from 'weaviate-client';
-import { deleteTextAction, deleteBulkTextsAction, uploadTextsAction } from '$lib/server/db/actions/text';
+import {
+	deleteTextAction,
+	deleteBulkTextsAction,
+	uploadTextsAction
+} from '$lib/server/db/actions/text';
 
 export const load = async ({ cookies, depends }) => {
 	depends('app:collection');
@@ -13,6 +17,6 @@ export const load = async ({ cookies, depends }) => {
 
 export const actions = {
 	uploadTextsAction,
-	deleteText: deleteTextAction,
-	deleteBulkTexts: deleteBulkTextsAction
+	deleteTextAction,
+	deleteBulkTextsAction
 };

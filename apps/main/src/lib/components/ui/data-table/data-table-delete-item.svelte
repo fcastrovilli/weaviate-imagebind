@@ -20,7 +20,7 @@
 	<Dialog.Content>
 		<form
 			method="POST"
-			action={`?/delete${fileType.charAt(0).toUpperCase() + fileType.slice(1)}`}
+			action={`?/delete${fileType.charAt(0).toUpperCase() + fileType.slice(1)}Action`}
 			use:enhance={() => {
 				return async ({ result, update }) => {
 					if (result.type === 'success') {

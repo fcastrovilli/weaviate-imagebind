@@ -1,10 +1,14 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
+	import { activeCollection } from '$lib/stores';
 
 	let { image, title, uuid }: { image: string; title: string; uuid: string } = $props();
+	let newTitle = $state(title);
+	let isEditing = $state(false);
 
 	const imageSource = `data:image/jpeg;base64,${image}`;
 </script>
@@ -19,7 +23,57 @@
 	</Dialog.Trigger>
 	<Dialog.Content class="sm:max-w-[800px]">
 		<Dialog.Header>
-			<Dialog.Title>{title}</Dialog.Title>
+			<Dialog.Title>
+				{#if isEditing}
+					<form
+						method="POST"
+						action="?/updateImageAction"
+						use:enhance={() => {
+							return async ({ result, update }) => {
+								if (result.type === 'success') {
+									toast.success('Title updated successfully');
+									isEditing = false;
+									update();
+								} else {
+									toast.error('Failed to update title');
+								}
+							};
+						}}
+						class="flex gap-2"
+					>
+						<Input
+							type="text"
+							name="title"
+							bind:value={newTitle}
+							class="h-8"
+							placeholder="Enter new title"
+						/>
+						<input type="hidden" name="uuid" value={uuid} />
+						<input type="hidden" name="collectionName" value={$activeCollection?.name} />
+						<Button type="submit" variant="outline" size="sm">Save</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onclick={() => {
+								isEditing = false;
+								newTitle = title;
+							}}>Cancel</Button
+						>
+					</form>
+				{:else}
+					<div class="flex items-center gap-2">
+						<span>{title}</span>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => {
+								isEditing = true;
+							}}>Edit</Button
+						>
+					</div>
+				{/if}
+			</Dialog.Title>
 		</Dialog.Header>
 		<div class="mt-4">
 			<img
@@ -31,7 +85,7 @@
 		<Dialog.Footer>
 			<form
 				method="POST"
-				action="?/deleteImage"
+				action="?/deleteImageAction"
 				use:enhance={() => {
 					return async ({ result, update }) => {
 						if (result.type === 'success') {

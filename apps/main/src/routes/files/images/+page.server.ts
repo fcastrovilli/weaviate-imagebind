@@ -20,6 +20,6 @@ export const load = async ({ cookies, depends }) => {
 export const actions = {
 	uploadImagesAction,
 	updateImageAction,
-	deleteImage: deleteImageAction,
-	deleteBulkImages: deleteBulkImagesAction
+	deleteImageAction,
+	deleteBulkImagesAction
 };

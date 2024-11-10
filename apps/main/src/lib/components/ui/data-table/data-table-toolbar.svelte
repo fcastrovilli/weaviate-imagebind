@@ -12,6 +12,7 @@
 	import type { WeaviateNonGenericObject } from 'weaviate-client';
 	import { activeCollection } from '$lib/stores';
 	import { getFileData } from '$lib/utils/files';
+	import { browser } from '$app/environment';
 
 	interface FileMetadata {
 		format: string;
@@ -26,6 +27,20 @@
 		table: Table<WeaviateNonGenericObject>;
 		fileType?: 'image' | 'audio' | 'video' | 'text' | 'file';
 	} = $props();
+
+	// Helper function to get the correct file type for action names
+	function getActionFileType(fileType: string) {
+		if (!browser) return;
+		if (fileType === 'file') {
+			// Check if we're in the images or audios route
+			if (window.location.pathname.includes('/files/images')) {
+				return 'Image';
+			} else if (window.location.pathname.includes('/files/audios')) {
+				return 'Audio';
+			}
+		}
+		return fileType.charAt(0).toUpperCase() + fileType.slice(1);
+	}
 
 	async function handleBulkDownload() {
 		const selectedRows = table.getSelectedRowModel().rows;
@@ -106,14 +121,14 @@
 	/>
 	<form
 		method="POST"
-		action={`?/deleteBulk${fileType.charAt(0).toUpperCase() + fileType.slice(1)}s`}
+		action={`?/deleteBulk${getActionFileType(fileType)}sAction`}
 		use:enhance={() => {
 			return async ({ result, update }) => {
 				if (result.type === 'success') {
-					toast.success(`${fileType}s deleted successfully`);
+					toast.success(`Files deleted successfully`);
 					update();
 				} else {
-					toast.error(`${fileType}s deletion failed`);
+					toast.error(`Files deletion failed`);
 				}
 			};
 		}}

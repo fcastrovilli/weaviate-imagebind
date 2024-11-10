@@ -21,7 +21,7 @@ export const deleteAudioAction: Action = async ({ request }) => {
 	}
 };
 
-export const deleteBulkAudioAction: Action = async ({ request }) => {
+export const deleteBulkAudiosAction: Action = async ({ request }) => {
 	const formData = await request.formData();
 	const uuids = JSON.parse(formData.get('uuids') as string) as string[];
 	const collectionName = formData.get('collectionName') as string;
