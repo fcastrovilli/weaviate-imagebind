@@ -1,10 +1,10 @@
-import { getImages } from '$lib/server/db/utils';
+import { getImages } from '$lib/server/db/utils/image';
 import type { WeaviateNonGenericObject } from 'weaviate-client';
 import {
 	deleteImageAction,
 	deleteBulkImagesAction,
 	uploadImagesAction
-} from '$lib/server/db/actions';
+} from '$lib/server/db/actions/image';
 
 export const load = async ({ cookies, depends }) => {
 	depends('app:collection');

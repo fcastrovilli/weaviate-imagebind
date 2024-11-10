@@ -4,6 +4,14 @@ import { getClient } from '.';
 type MediaType = 'audio' | 'image' | 'text' | 'video';
 type DataType = 'text' | 'blob';
 
+interface Property {
+	name: string;
+	dataType: DataType;
+	description: string;
+	indexFilterable: boolean;
+	indexSearchable: boolean;
+}
+
 interface CreateCollectionProps {
 	name: string;
 	description?: string;
@@ -31,14 +39,8 @@ export async function createCollection({ name, description, mediaTypes }: Create
 			);
 		}
 
-		// Define base properties that all collections will have
-		const properties: {
-			name: string;
-			dataType: DataType;
-			description?: string;
-			indexFilterable?: boolean;
-			indexSearchable?: boolean;
-		}[] = [
+		// Base properties
+		const properties: Property[] = [
 			{
 				name: 'title',
 				dataType: 'text',
@@ -48,33 +50,64 @@ export async function createCollection({ name, description, mediaTypes }: Create
 			}
 		];
 
-		// Add a content property for each media type
-		mediaTypes.forEach((mediaType) => {
+		// Add media-specific properties
+		if (mediaTypes.includes('audio')) {
 			properties.push({
-				name: `${mediaType}Content`,
+				name: 'audio',
 				dataType: 'blob',
-				description: `${mediaType} content stored as blob`,
-				indexFilterable: true
+				description: 'Audio content in base64',
+				indexFilterable: true,
+				indexSearchable: false
 			});
-		});
+		}
 
-		// Configure vectorizer for all selected media types
+		if (mediaTypes.includes('image')) {
+			properties.push({
+				name: 'image',
+				dataType: 'blob',
+				description: 'Image content in base64',
+				indexFilterable: true,
+				indexSearchable: false
+			});
+		}
+
+		if (mediaTypes.includes('video')) {
+			properties.push({
+				name: 'video',
+				dataType: 'blob',
+				description: 'Video content in base64',
+				indexFilterable: true,
+				indexSearchable: false
+			});
+		}
+
+		if (mediaTypes.includes('text')) {
+			properties.push({
+				name: 'text',
+				dataType: 'text',
+				description: 'Text content',
+				indexFilterable: true,
+				indexSearchable: true
+			});
+		}
+
+		// Configure vectorizer
 		const vectorizerConfig = {
-			name: 'multi_content_vectorizer',
-			textFields: [{ name: 'title', weight: 0.3 }],
+			name: 'title_vector',
+			textFields: [{ name: 'title', weight: 0.1 }],
 			...(mediaTypes.includes('audio') && {
-				audioFields: [{ name: 'audioContent', weight: 0.7 }]
+				audioFields: [{ name: 'audio', weight: 0.9 }]
 			}),
 			...(mediaTypes.includes('image') && {
-				imageFields: [{ name: 'imageContent', weight: 0.7 }]
+				imageFields: [{ name: 'image', weight: 0.9 }]
 			}),
 			...(mediaTypes.includes('video') && {
-				videoFields: [{ name: 'videoContent', weight: 0.7 }]
+				videoFields: [{ name: 'video', weight: 0.9 }]
 			}),
 			...(mediaTypes.includes('text') && {
 				textFields: [
-					{ name: 'title', weight: 0.3 },
-					{ name: 'textContent', weight: 0.7 }
+					{ name: 'title', weight: 0.1 },
+					{ name: 'text', weight: 0.9 }
 				]
 			})
 		};
@@ -83,14 +116,13 @@ export async function createCollection({ name, description, mediaTypes }: Create
 			name: cleanedName,
 			description: description || `Collection for ${mediaTypes.join(', ')} content`,
 			properties: properties,
+			invertedIndex: { indexNullState: true },
 			vectorizers: [weaviate.configure.vectorizer.multi2VecBind(vectorizerConfig)]
 		});
 
 		return collection;
 	} catch (error) {
 		console.error('Error creating collection:', error);
-		throw new Error(
-			`Failed to create collection: ${error instanceof Error ? error.message : 'Unknown error'}`
-		);
+		throw error;
 	}
 }

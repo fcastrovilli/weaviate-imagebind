@@ -1,11 +1,6 @@
-import {
-	createCollectionAction,
-	createImageCollectionAction,
-	deleteCollectionAction
-} from '$lib/server/db/actions.js';
+import { createCollectionAction, deleteCollectionAction } from '$lib/server/db/actions/collection';
 
 export const actions = {
 	createCollectionAction,
-	createImageCollectionAction,
 	deleteCollectionAction
 };

@@ -1,11 +1,22 @@
-import { getImages } from '$lib/server/db/utils';
+import { getVideos } from '$lib/server/db/utils';
 import type { WeaviateNonGenericObject } from 'weaviate-client';
+import {
+	deleteVideoAction,
+	deleteBulkVideosAction,
+	uploadVideosAction
+} from '$lib/server/db/actions/video';
 
 export const load = async ({ cookies, depends }) => {
-	depends('app:collection')
+	depends('app:collection');
 	const collectionName = cookies.get('lastSelectedCollection');
-	if (!collectionName) return { images: null };
-	
-	const images: WeaviateNonGenericObject[] | null = await getImages(collectionName);
-	return { images };
+	if (!collectionName) return { videos: null };
+
+	const videos: WeaviateNonGenericObject[] | null = await getVideos(collectionName);
+	return { videos };
+};
+
+export const actions = {
+	uploadVideosAction,
+	deleteVideo: deleteVideoAction,
+	deleteBulkVideos: deleteBulkVideosAction
 };

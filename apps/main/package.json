@@ -50,6 +50,7 @@
 	},
 	"dependencies": {
 		"@tanstack/table-core": "^8.20.5",
+		"fs": "0.0.1-security",
 		"jszip": "^3.10.1",
 		"runed": "^0.15.3",
 		"weaviate-client": "^3.2.2"

@@ -34,6 +34,7 @@
 	import NavCollections from './nav-collections.svelte';
 	import type { CollectionConfig } from 'weaviate-client';
 	import { page } from '$app/stores';
+	import { activeCollection } from '$lib/stores';
 
 	let { collections }: { collections: CollectionConfig[] } = $props();
 
@@ -60,7 +61,7 @@
 			<Collapsible.Root class="group/collapsible" open={isGroupActive(mainItem)}>
 				{#snippet child({ props })}
 					<Sidebar.MenuItem {...props}>
-						<Collapsible.Trigger>
+						<Collapsible.Trigger disabled={!$activeCollection}>
 							{#snippet child({ props })}
 								<Sidebar.MenuButton {...props} isActive={isActive(mainItem.url, true)}>
 									{#snippet tooltipContent()}

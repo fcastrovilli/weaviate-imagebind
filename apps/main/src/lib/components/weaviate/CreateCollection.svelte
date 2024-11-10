@@ -52,12 +52,14 @@
 			use:enhance={() => {
 				return async ({ result, update }) => {
 					if (result.type === 'success') {
-						open = false;
-						toast.success('Collection created successfully');
-					} else {
-						toast.error('Failed to create collection');
+						if (result.data?.success === true) {
+							open = false;
+							toast.success('Collection created successfully');
+						} else {
+							toast.error(`Failed to create collection: ${result.data?.error}`);
+						}
+						update();
 					}
-					update();
 				};
 			}}
 			method="POST"
