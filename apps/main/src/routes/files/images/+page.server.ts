@@ -3,7 +3,8 @@ import type { WeaviateNonGenericObject } from 'weaviate-client';
 import {
 	deleteImageAction,
 	deleteBulkImagesAction,
-	uploadImagesAction
+	uploadImagesAction,
+	updateImageAction
 } from '$lib/server/db/actions/image';
 
 export const load = async ({ cookies, depends }) => {
@@ -18,6 +19,7 @@ export const load = async ({ cookies, depends }) => {
 
 export const actions = {
 	uploadImagesAction,
+	updateImageAction,
 	deleteImage: deleteImageAction,
 	deleteBulkImages: deleteBulkImagesAction
 };

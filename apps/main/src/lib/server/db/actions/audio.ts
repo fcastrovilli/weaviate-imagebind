@@ -72,26 +72,9 @@ export const updateAudioAction: Action = async ({ request }) => {
 	const collectionName = formData.get('collectionName') as string;
 	const uuid = formData.get('uuid') as string;
 	const title = formData.get('title') as string;
-	const audioFile = formData.get('audiofile') as File | null;
 
 	try {
-		let updateData: Parameters<typeof updateAudio>[2] = { title };
-
-		// If a new audio file is provided, process it
-		if (audioFile) {
-			const arrayBuffer = await audioFile.arrayBuffer();
-			const buffer = Buffer.from(arrayBuffer);
-
-			updateData = {
-				...updateData,
-				audio: buffer.toString('base64'),
-				audioMetadata: {
-					duration: 0, // You might want to add audio duration extraction here
-					format: audioFile.type.split('/')[1] || 'unknown',
-					size: audioFile.size
-				}
-			};
-		}
+		const updateData: Parameters<typeof updateAudio>[2] = { title };
 
 		const result = await updateAudio(collectionName, uuid, updateData);
 		if (result) {

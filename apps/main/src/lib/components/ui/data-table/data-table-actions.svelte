@@ -3,8 +3,11 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import DataTableDeleteItem from './data-table-delete-item.svelte';
+	import DataTableEditItem from './data-table-edit-item.svelte';
+	import { getFileData } from '$lib/utils/files';
 
-	let { row, fileType } = $props<{
+	let { row, action, fileType } = $props<{
+		action: string;
 		row: {
 			title: string;
 			uuid: string;
@@ -36,15 +39,26 @@
 
 	function handleDownload() {
 		if (row.original?.fileData && row.original?.mimeType) {
-			const dataUrl = `data:${row.original.mimeType};base64,${row.original.fileData}`;
-			const link = document.createElement('a');
-			link.href = dataUrl;
-			link.download = `${row.title}.${fileType}`;
-			link.click();
+			const processedData = getFileData(
+				row.original.fileData,
+				row.original.mimeType,
+				fileType as 'audio' | 'image'
+			);
+
+			if (processedData) {
+				const blob = new Blob([processedData.buffer], { type: processedData.mimeType });
+				const url = URL.createObjectURL(blob);
+				const link = document.createElement('a');
+				link.href = url;
+				link.download = `${row.title}.${processedData.extension}`;
+				link.click();
+				URL.revokeObjectURL(url);
+			}
 		}
 	}
 </script>
 
+<DataTableEditItem {fileType} {row} bind:open={editDialogOpen} {action} />
 <DataTableDeleteItem {fileType} uuid={row.uuid} bind:open={deleteDialogOpen} />
 
 <DropdownMenu.Root>

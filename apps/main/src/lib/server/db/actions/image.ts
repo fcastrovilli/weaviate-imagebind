@@ -80,28 +80,9 @@ export const updateImageAction: Action = async ({ request }) => {
 	const collectionName = formData.get('collectionName') as string;
 	const uuid = formData.get('uuid') as string;
 	const title = formData.get('title') as string;
-	const imageFile = formData.get('imagefile') as File | null;
 
 	try {
-		let updateData: Parameters<typeof updateImage>[2] = { title };
-
-		// If a new image file is provided, process it
-		if (imageFile) {
-			const arrayBuffer = await imageFile.arrayBuffer();
-			const buffer = Buffer.from(arrayBuffer);
-			const metadata = await sharp(buffer).metadata();
-
-			updateData = {
-				...updateData,
-				image: buffer.toString('base64'),
-				imageMetadata: {
-					width: metadata.width || 0,
-					height: metadata.height || 0,
-					format: metadata.format || 'unknown',
-					size: imageFile.size
-				}
-			};
-		}
+		const updateData: Parameters<typeof updateImage>[2] = { title };
 
 		const result = await updateImage(collectionName, uuid, updateData);
 		if (result) {

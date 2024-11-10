@@ -86,3 +86,37 @@ export const updateImage = async (
 
 	return response;
 };
+
+export const IMAGE_MIME_TYPES: Record<string, string> = {
+	jpeg: 'image/jpeg',
+	jpg: 'image/jpeg',
+	png: 'image/png',
+	gif: 'image/gif',
+	webp: 'image/webp'
+};
+
+export const getImageExtension = (mimeType: string): string => {
+	const entry = Object.entries(IMAGE_MIME_TYPES).find(([mime]) => mime === mimeType);
+	return entry ? entry[0] : 'jpg'; // default to jpg if unknown
+};
+
+export const getImageFileData = (imageString: string, mimeType: string) => {
+	try {
+		const fileContent = atob(imageString);
+		const arrayBuffer = new ArrayBuffer(fileContent.length);
+		const uint8Array = new Uint8Array(arrayBuffer);
+
+		for (let i = 0; i < fileContent.length; i++) {
+			uint8Array[i] = fileContent.charCodeAt(i);
+		}
+
+		return {
+			buffer: uint8Array,
+			extension: getImageExtension(mimeType),
+			mimeType: mimeType || IMAGE_MIME_TYPES.jpeg
+		};
+	} catch (error) {
+		console.error('Error processing image data:', error);
+		return null;
+	}
+};

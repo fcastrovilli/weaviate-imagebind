@@ -73,6 +73,7 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 		header: 'Actions',
 		cell: ({ row }) => {
 			return renderComponent(DataTableActions, {
+				action: 'updateAudioAction',
 				fileType: 'audio',
 				row: {
 					title: row.getValue<string>('title'),

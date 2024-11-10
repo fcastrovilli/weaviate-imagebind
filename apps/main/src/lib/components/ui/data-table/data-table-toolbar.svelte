@@ -11,15 +11,20 @@
 	import { enhance } from '$app/forms';
 	import type { WeaviateNonGenericObject } from 'weaviate-client';
 	import { activeCollection } from '$lib/stores';
+	import { getFileData } from '$lib/utils/files';
+
+	interface FileMetadata {
+		format: string;
+		size: number;
+		[key: string]: unknown;
+	}
 
 	let {
 		table,
-		fileType = 'file',
-		mimeType = 'application/octet-stream'
+		fileType = 'file'
 	}: {
 		table: Table<WeaviateNonGenericObject>;
 		fileType?: 'image' | 'audio' | 'video' | 'text' | 'file';
-		mimeType?: string;
 	} = $props();
 
 	async function handleBulkDownload() {
@@ -28,24 +33,58 @@
 
 		// Add each file to the zip
 		for (const row of selectedRows) {
-			const fileData = row.original.properties[fileType];
-			const title = row.original.properties.title;
+			// Map file type to property name
+			let propertyName: string;
+			let actualFileType: 'audio' | 'image';
 
-			if (!fileData || typeof fileData !== 'string') continue;
-			const fileContent = atob(fileData);
-			const arrayBuffer = new ArrayBuffer(fileContent.length);
-			const uint8Array = new Uint8Array(arrayBuffer);
-
-			for (let i = 0; i < fileContent.length; i++) {
-				uint8Array[i] = fileContent.charCodeAt(i);
+			// Check what kind of file we're dealing with by looking at the properties
+			if (fileType === 'file') {
+				if (row.original.properties.image) {
+					propertyName = 'image';
+					actualFileType = 'image';
+				} else if (row.original.properties.audio) {
+					propertyName = 'audio';
+					actualFileType = 'audio';
+				} else {
+					console.log('Skipping - unknown file type');
+					continue;
+				}
+			} else {
+				propertyName = fileType;
+				actualFileType = fileType as 'audio' | 'image';
 			}
 
-			// Add to zip
-			zip.file(`${title}.${fileType}`, uint8Array);
+			const fileData = row.original.properties[propertyName];
+			const metadata = row.original.properties[`${propertyName}Metadata`] as
+				| FileMetadata
+				| undefined;
+			const mimeType = metadata?.format || '';
+			const title = row.original.properties.title as string;
+
+			if (!fileData || typeof fileData !== 'string') {
+				continue;
+			}
+
+			const processedData = getFileData(fileData, mimeType, actualFileType);
+
+			if (processedData) {
+				zip.file(`${title}.${processedData.extension}`, processedData.buffer);
+			} else {
+				console.log('Failed to process data');
+			}
 		}
 
 		// Generate and download zip
-		const content = await zip.generateAsync({ type: 'blob' });
+		const content = await zip.generateAsync({
+			type: 'blob',
+			compression: 'DEFLATE',
+			compressionOptions: {
+				level: 9
+			}
+		});
+
+		console.log('Zip size:', content.size);
+
 		const url = window.URL.createObjectURL(content);
 		const link = document.createElement('a');
 		link.href = url;

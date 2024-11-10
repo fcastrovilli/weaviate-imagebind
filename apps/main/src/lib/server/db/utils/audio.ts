@@ -1,6 +1,18 @@
 import { Filters } from 'weaviate-client';
 import { getCollection } from '../collections';
 
+export const AUDIO_MIME_TYPES: Record<string, string> = {
+	mp3: 'audio/mpeg',
+	wav: 'audio/wav',
+	ogg: 'audio/ogg',
+	m4a: 'audio/mp4'
+};
+
+export const getAudioExtension = (mimeType: string): string => {
+	const entry = Object.entries(AUDIO_MIME_TYPES).find(([mime]) => mime === mimeType);
+	return entry ? entry[0] : 'mp3'; // default to mp3 if unknown
+};
+
 export const getAudios = async (collection_name: string) => {
 	const collection = await getCollection(collection_name);
 	if (!collection) {
@@ -68,4 +80,25 @@ export const updateAudio = async (
 	});
 
 	return response;
+};
+
+export const getAudioFileData = (audioString: string, mimeType: string) => {
+	try {
+		const fileContent = atob(audioString);
+		const arrayBuffer = new ArrayBuffer(fileContent.length);
+		const uint8Array = new Uint8Array(arrayBuffer);
+
+		for (let i = 0; i < fileContent.length; i++) {
+			uint8Array[i] = fileContent.charCodeAt(i);
+		}
+
+		return {
+			buffer: uint8Array,
+			extension: getAudioExtension(mimeType),
+			mimeType: mimeType || AUDIO_MIME_TYPES.mp3
+		};
+	} catch (error) {
+		console.error('Error processing audio data:', error);
+		return null;
+	}
 };

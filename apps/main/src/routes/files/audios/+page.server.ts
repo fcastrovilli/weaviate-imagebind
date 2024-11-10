@@ -3,6 +3,7 @@ import type { WeaviateNonGenericObject } from 'weaviate-client';
 import {
 	deleteAudioAction,
 	deleteBulkAudioAction,
+	updateAudioAction,
 	uploadAudiosAction
 } from '$lib/server/db/actions/audio';
 
@@ -16,6 +17,7 @@ export const load = async ({ cookies, depends }) => {
 };
 
 export const actions = {
+	updateAudioAction,
 	uploadAudiosAction,
 	deleteAudio: deleteAudioAction,
 	deleteBulkAudios: deleteBulkAudioAction
