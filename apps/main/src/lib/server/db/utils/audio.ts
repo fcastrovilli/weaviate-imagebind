@@ -18,11 +18,18 @@ export const getAudios = async (collection_name: string) => {
 	if (!collection) {
 		return null;
 	}
+	const properties = (await collection.config.get()).properties.map((p) => p.name);
 
 	const filters = Filters.and(
-		collection.filter.byProperty('imageMetadata').isNull(true),
-		collection.filter.byProperty('videoMetadata').isNull(true),
-		collection.filter.byProperty('textMetadata').isNull(true)
+		...(properties.includes('imageMetadata')
+			? [collection.filter.byProperty('imageMetadata').isNull(true)]
+			: []),
+		...(properties.includes('videoMetadata')
+			? [collection.filter.byProperty('videoMetadata').isNull(true)]
+			: []),
+		...(properties.includes('textMetadata')
+			? [collection.filter.byProperty('textMetadata').isNull(true)]
+			: [])
 	);
 
 	const result = await collection.query.fetchObjects({

@@ -1,12 +1,17 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
-	import { items } from '$lib/components/layout/nav-main.svelte';
 	import ImageIcon from 'lucide-svelte/icons/image';
 	import AudioIcon from 'lucide-svelte/icons/audio-waveform';
 	import VideoIcon from 'lucide-svelte/icons/video';
 	import TextIcon from 'lucide-svelte/icons/file-text';
+	import { activeCollection } from '$lib/stores';
+	import type { CollectionConfig } from '$lib/stores';
 
 	type IconMapKey = 'Images' | 'Audios' | 'Videos' | 'Texts';
+	type MediaType = {
+		title: IconMapKey;
+		url: string;
+	};
 
 	const iconMap: Record<
 		IconMapKey,
@@ -17,10 +22,19 @@
 		Videos: VideoIcon,
 		Texts: TextIcon
 	};
+
+	const mediaTypeToInfo: Record<'image' | 'audio' | 'video' | 'text', MediaType> = {
+		image: { title: 'Images', url: '/files/images' },
+		audio: { title: 'Audios', url: '/files/audios' },
+		video: { title: 'Videos', url: '/files/videos' },
+		text: { title: 'Texts', url: '/files/texts' }
+	};
+
+	$: mediaTypes = $activeCollection?.config?.mediaTypes?.map((type) => mediaTypeToInfo[type]) ?? [];
 </script>
 
 <div class="grid gap-6 md:grid-cols-2">
-	{#each items[0].items as item}
+	{#each mediaTypes as item}
 		<a
 			href={item.url}
 			class="transition-transform duration-200 hover:-translate-y-1 hover:no-underline"

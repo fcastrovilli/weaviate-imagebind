@@ -63,7 +63,7 @@
 				};
 			}}
 			method="POST"
-			action="?/createCollectionAction"
+			action="/collections?/createCollectionAction"
 			class="flex flex-col gap-4"
 		>
 			<Dialog.Header>

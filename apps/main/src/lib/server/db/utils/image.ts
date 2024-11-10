@@ -7,10 +7,18 @@ export const getImages = async (collection_name: string) => {
 		return null;
 	}
 
+	const properties = (await collection.config.get()).properties.map((p) => p.name);
+
 	const filters = Filters.and(
-		collection.filter.byProperty('audioMetadata').isNull(true),
-		collection.filter.byProperty('videoMetadata').isNull(true),
-		collection.filter.byProperty('textMetadata').isNull(true)
+		...(properties.includes('audioMetadata')
+			? [collection.filter.byProperty('audioMetadata').isNull(true)]
+			: []),
+		...(properties.includes('videoMetadata')
+			? [collection.filter.byProperty('videoMetadata').isNull(true)]
+			: []),
+		...(properties.includes('textMetadata')
+			? [collection.filter.byProperty('textMetadata').isNull(true)]
+			: [])
 	);
 
 	const result = await collection.query.fetchObjects({

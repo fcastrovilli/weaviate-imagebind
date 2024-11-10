@@ -1,42 +1,54 @@
-<script lang="ts" module>
-	export let items = [
-		{
-			title: 'Files',
-			icon: Folder,
-			url: '/files',
-			items: [
-				{
-					title: 'Images',
-					url: '/files/images'
-				},
-				{
-					title: 'Audios',
-					url: '/files/audios'
-				},
-				{
-					title: 'Videos',
-					url: '/files/videos'
-				},
-				{
-					title: 'Texts',
-					url: '/files/texts'
-				}
-			]
-		}
-	];
-</script>
-
 <script lang="ts">
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import Folder from 'lucide-svelte/icons/folder';
 	import NavCollections from './nav-collections.svelte';
-	import type { CollectionConfig } from 'weaviate-client';
+	import type { CollectionConfig } from '$lib/stores';
 	import { page } from '$app/stores';
 	import { activeCollection } from '$lib/stores';
 
 	let { collections }: { collections: CollectionConfig[] } = $props();
+	let items: Array<{
+		title: string;
+		icon: any;
+		url: string;
+		items: Array<{ title: string; url: string }>;
+	}> = $state([]);
+
+	const mediaTypeToTitle: Record<'image' | 'audio' | 'video' | 'text', string> = {
+		image: 'Images',
+		audio: 'Audios',
+		video: 'Videos',
+		text: 'Texts'
+	};
+
+	function updateNavigationItems() {
+		if (!$activeCollection?.config?.mediaTypes?.length) {
+			items = [];
+			return;
+		}
+
+		const subItems = $activeCollection.config.mediaTypes.map((type) => ({
+			title: mediaTypeToTitle[type],
+			url: `/files/${type}s`
+		}));
+
+		items = [
+			{
+				title: 'Files',
+				icon: Folder,
+				url: '/files',
+				items: subItems
+			}
+		];
+	}
+
+	$effect(() => {
+		if ($activeCollection) {
+			updateNavigationItems();
+		}
+	});
 
 	// Function to check if a URL is active
 	const isActive = (url: string, isMainItem = false) => {

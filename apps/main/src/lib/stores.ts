@@ -1,6 +1,43 @@
 import { writable } from 'svelte/store';
-import type { CollectionConfig } from 'weaviate-client';
+import type { CollectionConfig as WeaviateCollectionConfig } from 'weaviate-client';
 import { invalidate } from '$app/navigation';
+
+type PropertyVectorizerConfig = {
+	'multi2vec-bind': {
+		skip: boolean;
+		vectorizePropertyName: boolean;
+	};
+};
+
+type BaseProperty = {
+	name: string;
+	dataType: string;
+	description?: string;
+	indexFilterable: boolean;
+	indexInverted: boolean;
+	indexRangeFilters: boolean;
+	indexSearchable: boolean;
+	vectorizerConfig?: PropertyVectorizerConfig;
+	tokenization: 'word' | 'none';
+};
+
+type NestedProperty = BaseProperty & {
+	dataType: 'number' | 'text' | 'int';
+};
+
+type Property = BaseProperty & {
+	dataType: 'text' | 'blob' | 'object';
+	nestedProperties?: NestedProperty[];
+};
+
+export interface CollectionConfig extends WeaviateCollectionConfig {
+	config: {
+		vectorizers: string[];
+		properties: Property[];
+		references: string[];
+		mediaTypes: Array<'image' | 'audio' | 'video' | 'text'>;
+	};
+}
 
 const STORAGE_KEY = 'lastSelectedCollection';
 
