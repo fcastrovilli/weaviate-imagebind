@@ -2,7 +2,13 @@ import weaviate from 'weaviate-client';
 import { getClient } from '.';
 
 type MediaType = 'audio' | 'image' | 'text' | 'video';
-type DataType = 'text' | 'blob';
+type DataType = 'text' | 'blob' | 'number' | 'int' | 'boolean' | 'date' | 'object';
+
+type NestedProperty = {
+	name: string;
+	dataType: Exclude<DataType, 'object'>;
+	description?: string;
+};
 
 interface Property {
 	name: string;
@@ -10,6 +16,7 @@ interface Property {
 	description: string;
 	indexFilterable: boolean;
 	indexSearchable: boolean;
+	nestedProperties?: NestedProperty[];
 }
 
 interface CreateCollectionProps {
@@ -52,43 +59,104 @@ export async function createCollection({ name, description, mediaTypes }: Create
 
 		// Add media-specific properties
 		if (mediaTypes.includes('audio')) {
-			properties.push({
-				name: 'audio',
-				dataType: 'blob',
-				description: 'Audio content in base64',
-				indexFilterable: true,
-				indexSearchable: false
-			});
+			properties.push(
+				{
+					name: 'audio',
+					dataType: 'blob',
+					description: 'Audio content in base64',
+					indexFilterable: false,
+					indexSearchable: false
+				},
+				{
+					name: 'audioMetadata',
+					dataType: 'object',
+					description: 'Metadata for audio content',
+					indexFilterable: true,
+					indexSearchable: false,
+					nestedProperties: [
+						{ name: 'duration', dataType: 'number' },
+						{ name: 'format', dataType: 'text' },
+						{ name: 'size', dataType: 'number' }
+					]
+				}
+			);
 		}
 
 		if (mediaTypes.includes('image')) {
-			properties.push({
-				name: 'image',
-				dataType: 'blob',
-				description: 'Image content in base64',
-				indexFilterable: true,
-				indexSearchable: false
-			});
+			properties.push(
+				{
+					name: 'image',
+					dataType: 'blob',
+					description: 'Image content in base64',
+					indexFilterable: false,
+					indexSearchable: false
+				},
+				{
+					name: 'imageMetadata',
+					dataType: 'object',
+					description: 'Metadata for image content',
+					indexFilterable: true,
+					indexSearchable: false,
+					nestedProperties: [
+						{ name: 'width', dataType: 'int' },
+						{ name: 'height', dataType: 'int' },
+						{ name: 'format', dataType: 'text' },
+						{ name: 'size', dataType: 'number' }
+					]
+				}
+			);
 		}
 
 		if (mediaTypes.includes('video')) {
-			properties.push({
-				name: 'video',
-				dataType: 'blob',
-				description: 'Video content in base64',
-				indexFilterable: true,
-				indexSearchable: false
-			});
+			properties.push(
+				{
+					name: 'video',
+					dataType: 'blob',
+					description: 'Video content in base64',
+					indexFilterable: false,
+					indexSearchable: false
+				},
+				{
+					name: 'videoMetadata',
+					dataType: 'object',
+					description: 'Metadata for video content',
+					indexFilterable: true,
+					indexSearchable: false,
+					nestedProperties: [
+						{ name: 'duration', dataType: 'number' },
+						{ name: 'width', dataType: 'int' },
+						{ name: 'height', dataType: 'int' },
+						{ name: 'format', dataType: 'text' },
+						{ name: 'size', dataType: 'number' },
+						{ name: 'fps', dataType: 'number' }
+					]
+				}
+			);
 		}
 
 		if (mediaTypes.includes('text')) {
-			properties.push({
-				name: 'text',
-				dataType: 'text',
-				description: 'Text content',
-				indexFilterable: true,
-				indexSearchable: true
-			});
+			properties.push(
+				{
+					name: 'text',
+					dataType: 'text',
+					description: 'Text content',
+					indexFilterable: true,
+					indexSearchable: true
+				},
+				{
+					name: 'textMetadata',
+					dataType: 'object',
+					description: 'Metadata for text content',
+					indexFilterable: true,
+					indexSearchable: false,
+					nestedProperties: [
+						{ name: 'wordCount', dataType: 'int' },
+						{ name: 'language', dataType: 'text' },
+						{ name: 'format', dataType: 'text' },
+						{ name: 'encoding', dataType: 'text' }
+					]
+				}
+			);
 		}
 
 		// Configure vectorizer

@@ -13,7 +13,7 @@
 	let isUploading = $state(false);
 	let dragActive = $state(false);
 	let files: FileList | null = $state(null);
-	let previews = $state<{ name: string; url?: string }[]>([]);
+	let previews = $state<{ name: string; url?: string; title: string }[]>([]);
 
 	function handleDrag(e: DragEvent) {
 		e.preventDefault();
@@ -28,7 +28,8 @@
 	function updatePreviews(fileList: FileList) {
 		previews = Array.from(fileList).map((file) => ({
 			name: file.name,
-			url: URL.createObjectURL(file)
+			url: URL.createObjectURL(file),
+			title: file.name.replace(/\.[^/.]+$/, '')
 		}));
 	}
 
@@ -55,26 +56,26 @@
 	function removeFile(fileName: string) {
 		if (!files) return;
 
-		// Convert FileList to Array and remove the file
 		const fileArray = Array.from(files);
 		const filteredFiles = fileArray.filter((file) => file.name !== fileName);
 
-		// Create new FileList-like object
 		const dataTransfer = new DataTransfer();
 		filteredFiles.forEach((file) => dataTransfer.items.add(file));
 
-		// Update files and input
 		files = dataTransfer.files;
 		fileInput.files = dataTransfer.files;
 
-		// Update previews
-		previews = previews.filter((preview) => preview.name !== fileName);
-
-		// Cleanup URL
 		const removedPreview = previews.find((p) => p.name === fileName);
 		if (removedPreview?.url) {
 			URL.revokeObjectURL(removedPreview.url);
 		}
+		previews = previews.filter((preview) => preview.name !== fileName);
+	}
+
+	function updateTitle(fileName: string, newTitle: string) {
+		previews = previews.map((preview) =>
+			preview.name === fileName ? { ...preview, title: newTitle } : preview
+		);
 	}
 
 	// Cleanup URLs on component destruction
@@ -90,11 +91,6 @@
 	});
 
 	function clearFiles() {
-		// Cleanup URLs
-		previews.forEach((preview) => {
-			if (preview.url) URL.revokeObjectURL(preview.url);
-		});
-
 		files = null;
 		previews = [];
 		if (fileInput) {
@@ -184,12 +180,26 @@
 								<img
 									src={preview.url}
 									alt={preview.name}
-									class="mb-1 aspect-square w-full rounded object-cover"
+									class="mb-2 aspect-square w-full rounded object-cover"
 								/>
 							{/if}
-							<p class="truncate text-xs text-muted-foreground" title={preview.name}>
-								{preview.name}
-							</p>
+							<div class="space-y-1.5">
+								<p class="truncate text-[10px] text-muted-foreground" title={preview.name}>
+									File: {preview.name}
+								</p>
+								<div class="space-y-1">
+									<label for={`title-${preview.name}`} class="text-xs font-medium"> Title </label>
+									<input
+										id={`title-${preview.name}`}
+										type="text"
+										name="titles"
+										value={preview.title}
+										class="w-full rounded-sm border bg-transparent px-2 py-1 text-xs focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+										onchange={(e) =>
+											updateTitle(preview.name, (e.target as HTMLInputElement).value)}
+									/>
+								</div>
+							</div>
 						</div>
 					{/each}
 				</div>
@@ -199,7 +209,11 @@
 				</Button>
 			{/if}
 
-			<Button type="submit" disabled={!files || files.length === 0 || isUploading || !$activeCollection} class="w-full">
+			<Button
+				type="submit"
+				disabled={!files || files.length === 0 || isUploading || !$activeCollection}
+				class="w-full"
+			>
 				{#if isUploading}
 					<LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
 				{/if}

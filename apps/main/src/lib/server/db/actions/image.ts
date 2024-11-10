@@ -1,6 +1,8 @@
 import type { Action } from '@sveltejs/kit';
 import { getCollection } from '../collections';
 import { uploadImages } from '$lib/server/db/utils/image';
+import sharp from 'sharp';
+import { updateImage } from '$lib/server/db/utils/image';
 
 export const uploadImagesAction: Action = async ({ request }) => {
 	const formData = await request.formData();
@@ -9,10 +11,27 @@ export const uploadImagesAction: Action = async ({ request }) => {
 	const titles = formData.getAll('titles') as string[];
 
 	const imageFiles = await Promise.all(
-		imageBlobs.map(async (imageBlob, index) => ({
-			title: titles[index] || imageBlob.name,
-			image: await imageBlob.arrayBuffer().then((buffer) => Buffer.from(buffer).toString('base64'))
-		}))
+		imageBlobs.map(async (imageBlob, index) => {
+			// Convert File to Buffer
+			const arrayBuffer = await imageBlob.arrayBuffer();
+			const buffer = Buffer.from(arrayBuffer);
+
+			// Get image metadata using sharp
+			const metadata = await sharp(buffer).metadata();
+
+			const imageMetadata = {
+				width: metadata.width || 0,
+				height: metadata.height || 0,
+				format: metadata.format || 'unknown',
+				size: imageBlob.size
+			};
+
+			return {
+				title: titles[index] || imageBlob.name,
+				image: buffer.toString('base64'),
+				imageMetadata
+			};
+		})
 	);
 
 	return await uploadImages(collectionName, imageFiles);
@@ -53,5 +72,44 @@ export const deleteBulkImagesAction: Action = async ({ request }) => {
 	} catch (error) {
 		console.error('Error deleting images:', error);
 		return { success: false, error: 'Failed to delete images' };
+	}
+};
+
+export const updateImageAction: Action = async ({ request }) => {
+	const formData = await request.formData();
+	const collectionName = formData.get('collectionName') as string;
+	const uuid = formData.get('uuid') as string;
+	const title = formData.get('title') as string;
+	const imageFile = formData.get('imagefile') as File | null;
+
+	try {
+		let updateData: Parameters<typeof updateImage>[2] = { title };
+
+		// If a new image file is provided, process it
+		if (imageFile) {
+			const arrayBuffer = await imageFile.arrayBuffer();
+			const buffer = Buffer.from(arrayBuffer);
+			const metadata = await sharp(buffer).metadata();
+
+			updateData = {
+				...updateData,
+				image: buffer.toString('base64'),
+				imageMetadata: {
+					width: metadata.width || 0,
+					height: metadata.height || 0,
+					format: metadata.format || 'unknown',
+					size: imageFile.size
+				}
+			};
+		}
+
+		const result = await updateImage(collectionName, uuid, updateData);
+		if (result) {
+			return { success: true };
+		}
+		return { success: false, error: 'Failed to update image' };
+	} catch (error) {
+		console.error('Error updating image:', error);
+		return { success: false, error: 'Failed to update image' };
 	}
 };

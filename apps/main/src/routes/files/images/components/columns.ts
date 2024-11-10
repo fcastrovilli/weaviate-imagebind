@@ -1,20 +1,22 @@
 import type { ColumnDef } from '@tanstack/table-core';
 import type { WeaviateNonGenericObject } from 'weaviate-client';
 import { createRawSnippet } from 'svelte';
-import { renderComponent, renderSnippet } from '$lib/components/ui/data-table/index.js';
-import DataTableCheckbox from './data-table/data-table-checkbox.svelte';
+import { renderComponent, renderSnippet } from '$lib/components/ui/data-table/render-helpers.js';
+import DataTableCheckbox from '$lib/components/ui/data-table/data-table-checkbox.svelte';
 import ImagePreviewDialog from './image-preview-dialog.svelte';
-import DataTableActions from './data-table/data-table-actions.svelte';
-import DataTableTitleButton from './data-table/data-table-title-button.svelte';
+import DataTableActions from '$lib/components/ui/data-table/data-table-actions.svelte';
+import DataTableTitleButton from '$lib/components/ui/data-table/data-table-title-button.svelte';
 
 export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 	{
 		id: 'select',
 		header: ({ table }) =>
 			renderComponent(DataTableCheckbox, {
-				checked:
-					table.getIsAllPageRowsSelected() ||
-					(table.getIsSomePageRowsSelected() && 'indeterminate'),
+				checked: table.getIsAllPageRowsSelected()
+					? true
+					: table.getIsSomePageRowsSelected()
+						? false
+						: undefined,
 				onCheckedChange: (value) => table.toggleAllPageRowsSelected(!!value),
 				'aria-label': 'Select all'
 			}),
@@ -71,9 +73,15 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 		header: 'Actions',
 		cell: ({ row }) => {
 			return renderComponent(DataTableActions, {
-				image: row.getValue<string>('image'),
-				title: row.getValue<string>('title'),
-				uuid: row.original.uuid
+				fileType: 'image',
+				row: {
+					title: row.getValue<string>('title'),
+					uuid: row.original.uuid,
+					original: {
+						fileData: row.getValue<string>('image'),
+						mimeType: 'image/jpeg'
+					}
+				}
 			});
 		},
 		enableSorting: false,

@@ -1,3 +1,4 @@
+import { Filters } from 'weaviate-client';
 import { getCollection } from '../collections';
 
 export const getImages = async (collection_name: string) => {
@@ -6,9 +7,15 @@ export const getImages = async (collection_name: string) => {
 		return null;
 	}
 
+	const filters = Filters.and(
+		collection.filter.byProperty('audioMetadata').isNull(true),
+		collection.filter.byProperty('videoMetadata').isNull(true),
+		collection.filter.byProperty('textMetadata').isNull(true)
+	);
+
 	const result = await collection.query.fetchObjects({
 		returnProperties: ['title', 'image'],
-		filters: collection.filter.byProperty('image').isNull(false),
+		filters: filters,
 		limit: 100
 	});
 
@@ -17,14 +24,22 @@ export const getImages = async (collection_name: string) => {
 
 export const uploadImages = async (
 	collection_name: string,
-	images: { title: string; image: string }[]
+	images: {
+		title: string;
+		image: string;
+		imageMetadata: {
+			width: number;
+			height: number;
+			format: string;
+			size: number;
+		};
+	}[]
 ) => {
 	const collection = await getCollection(collection_name);
 	if (!collection) {
 		return null;
 	}
 
-	// The vectorizer will automatically handle the image content
 	const batch = await collection.data.insertMany(images);
 	return batch;
 };
@@ -42,4 +57,32 @@ export const queryImages = async (
 		limit: limit
 	});
 	return result;
+};
+
+export const updateImage = async (
+	collection_name: string,
+	uuid: string,
+	data: {
+		title?: string;
+		image?: string;
+		imageMetadata?: {
+			width: number;
+			height: number;
+			format: string;
+			size: number;
+		};
+	}
+) => {
+	const collection = await getCollection(collection_name);
+	if (!collection) {
+		return null;
+	}
+
+	// Use the new v3 update syntax
+	const response = await collection.data.update({
+		id: uuid,
+		properties: data
+	});
+
+	return response;
 };

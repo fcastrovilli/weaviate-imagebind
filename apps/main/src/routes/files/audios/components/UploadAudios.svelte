@@ -12,7 +12,7 @@
 	let isUploading = $state(false);
 	let dragActive = $state(false);
 	let files: FileList | null = $state(null);
-	let previews = $state<{ name: string }[]>([]);
+	let previews = $state<{ name: string; title: string }[]>([]);
 
 	function handleDrag(e: DragEvent) {
 		e.preventDefault();
@@ -26,7 +26,8 @@
 
 	function updatePreviews(fileList: FileList) {
 		previews = Array.from(fileList).map((file) => ({
-			name: file.name
+			name: file.name,
+			title: file.name.replace(/\.[^/.]+$/, '')
 		}));
 	}
 
@@ -63,6 +64,12 @@
 		fileInput.files = dataTransfer.files;
 
 		previews = previews.filter((preview) => preview.name !== fileName);
+	}
+
+	function updateTitle(fileName: string, newTitle: string) {
+		previews = previews.map((preview) =>
+			preview.name === fileName ? { ...preview, title: newTitle } : preview
+		);
 	}
 
 	let fileCount = $state(0);
@@ -148,7 +155,7 @@
 			{#if previews.length > 0}
 				<div class="grid gap-2">
 					{#each previews as preview}
-						<div class="group relative rounded-md border bg-muted p-2">
+						<div class="group relative rounded-md border bg-muted p-3">
 							<button
 								type="button"
 								class="absolute -right-2 -top-2 z-10 hidden rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 group-hover:block"
@@ -156,9 +163,24 @@
 							>
 								<X class="h-3 w-3" />
 							</button>
-							<p class="truncate text-sm" title={preview.name}>
-								{preview.name}
-							</p>
+							<div class="space-y-2">
+								<p class="truncate text-xs text-muted-foreground" title={preview.name}>
+									File: {preview.name}
+								</p>
+								<div class="space-y-1.5">
+									<label for={`title-${preview.name}`} class="text-sm font-medium"> Title </label>
+									<input
+										id={`title-${preview.name}`}
+										type="text"
+										name="titles"
+										value={preview.title}
+										placeholder="Enter a title for this audio"
+										class="w-full rounded-sm border bg-transparent px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+										onchange={(e) =>
+											updateTitle(preview.name, (e.target as HTMLInputElement).value)}
+									/>
+								</div>
+							</div>
 						</div>
 					{/each}
 				</div>

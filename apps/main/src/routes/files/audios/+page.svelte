@@ -2,7 +2,7 @@
 	import { activeCollection } from '$lib/stores';
 	import UploadAudios from './components/UploadAudios.svelte';
 	import { columns } from './components/columns';
-	import DataTable from './components/data-table.svelte';
+	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import * as Tabs from '$lib/components/ui/tabs';
 
 	let { data } = $props();

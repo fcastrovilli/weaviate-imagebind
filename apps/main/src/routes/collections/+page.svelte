@@ -55,7 +55,7 @@
 						</div>
 					</Card.Header>
 					<Card.Content>
-						<div class="flex flex-col gap-1">
+						<!-- <div class="flex flex-col gap-1">
 							<p class="text-sm font-medium">Properties</p>
 							<div class="grid grid-cols-2 gap-2">
 								{#each collection.config.properties as property}
@@ -69,7 +69,7 @@
 									{/if}
 								{/each}
 							</div>
-						</div>
+						</div> -->
 					</Card.Content>
 				</Card.Root>
 			</a>

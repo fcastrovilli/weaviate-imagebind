@@ -12,9 +12,11 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 		id: 'select',
 		header: ({ table }) =>
 			renderComponent(DataTableCheckbox, {
-				checked:
-					table.getIsAllPageRowsSelected() ||
-					(table.getIsSomePageRowsSelected() && 'indeterminate'),
+				checked: table.getIsAllPageRowsSelected()
+					? true
+					: table.getIsSomePageRowsSelected()
+						? false
+						: undefined,
 				onCheckedChange: (value: boolean) => table.toggleAllPageRowsSelected(!!value),
 				'aria-label': 'Select all'
 			}),
@@ -72,10 +74,14 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 		cell: ({ row }) => {
 			return renderComponent(DataTableActions, {
 				fileType: 'audio',
-				fileData: row.getValue<string>('audio'),
-				title: row.getValue<string>('title'),
-				uuid: row.original.uuid,
-				mimeType: 'audio/mp3'
+				row: {
+					title: row.getValue<string>('title'),
+					uuid: row.original.uuid,
+					original: {
+						fileData: row.getValue<string>('audio'),
+						mimeType: 'audio/mp3'
+					}
+				}
 			});
 		},
 		enableSorting: false,

@@ -53,6 +53,7 @@
 		"fs": "0.0.1-security",
 		"jszip": "^3.10.1",
 		"runed": "^0.15.3",
+		"sharp": "^0.33.5",
 		"weaviate-client": "^3.2.2"
 	}
 }
