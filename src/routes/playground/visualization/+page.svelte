@@ -7,19 +7,41 @@
 	let svg: SVGSVGElement;
 
 	function getMediaType(obj: MediaObject): MediaType {
-		const props = obj.properties;
-		if ('audioMetadata' in props) return 'audio';
-		if ('imageMetadata' in props) return 'image';
-		if ('videoMetadata' in props) return 'video';
+		console.log('Object properties:', obj.properties);
+		if (obj.properties['audioMetadata'] !== undefined && obj.properties['audioMetadata'] !== null) {
+			return 'audio';
+		}
+		if (obj.properties['imageMetadata'] !== undefined && obj.properties['imageMetadata'] !== null) {
+			return 'image';
+		}
+		if (obj.properties['videoMetadata'] !== undefined && obj.properties['videoMetadata'] !== null) {
+			return 'video';
+		}
 		return 'text';
 	}
+
+	const colors: Record<MediaType, string> = {
+		audio: '#FF4136', // Bright red
+		image: '#7FDBFF', // Light blue
+		video: '#01FF70', // Bright green
+		text: '#FFDC00' // Yellow
+	};
 
 	function createGraph() {
 		if (!data?.visualization?.objects || !svg) return;
 
-		// Log data for debugging
-		console.log('Objects:', data.visualization.objects);
-		console.log('Relations:', data.visualization.relations);
+		console.log(
+			'Nodes and their types:',
+			data.visualization.objects.map((obj) => ({
+				title: obj.properties['title'],
+				type: getMediaType(obj),
+				metadata: {
+					audio: obj.properties['audioMetadata'],
+					image: obj.properties['imageMetadata'],
+					video: obj.properties['videoMetadata']
+				}
+			}))
+		);
 
 		const width = 800;
 		const height = 600;
@@ -43,13 +65,11 @@
 			})
 			.filter((link): link is GraphLink => link !== null);
 
-		// Basic SVG setup
+		// Setup SVG
 		const svg_container = d3.select(svg).attr('viewBox', `0 0 ${width} ${height}`).html('');
 
-		// Create container group for zooming
+		// Add zoom
 		const g = svg_container.append('g');
-
-		// Add zoom behavior to SVG
 		svg_container.call(
 			d3
 				.zoom<SVGSVGElement, unknown>()
@@ -57,10 +77,8 @@
 					[0, 0],
 					[width, height]
 				])
-				.scaleExtent([0.1, 4])
-				.on('zoom', (event) => {
-					g.attr('transform', event.transform);
-				})
+				.scaleExtent([0.2, 2])
+				.on('zoom', (event) => g.attr('transform', event.transform))
 		);
 
 		// Draw links
@@ -69,36 +87,65 @@
 			.selectAll('line')
 			.data(links)
 			.join('line')
-			.attr('stroke', '#666')
-			.attr('stroke-width', (d) => d.strength * 2);
+			.attr('stroke', '#999')
+			.attr('stroke-width', 1);
 
 		// Draw nodes
-		const node = g.append('g').selectAll('g').data(nodes).join('g');
+		const node = g
+			.append('g')
+			.selectAll('g')
+			.data(nodes)
+			.join('g')
+			.call(
+				d3
+					.drag<any, GraphNode>()
+					.on('start', (event, d) => {
+						if (!event.active) simulation.alphaTarget(0.3).restart();
+						d.fx = event.x;
+						d.fy = event.y;
+					})
+					.on('drag', (event, d) => {
+						d.fx = event.x;
+						d.fy = event.y;
+					})
+					.on('end', (event, d) => {
+						if (!event.active) simulation.alphaTarget(0);
+						d.fx = null;
+						d.fy = null;
+					})
+			);
 
 		// Add circles
 		node
 			.append('circle')
-			.attr('r', 6)
+			.attr('r', 8)
 			.attr('fill', (d) => colors[d.type])
-			.attr('stroke', '#fff');
+			.attr('stroke', '#fff')
+			.attr('stroke-width', 1.5);
 
 		// Add labels
 		node
 			.append('text')
-			.attr('x', 8)
-			.attr('y', 4)
 			.text((d) => d.label)
-			.attr('fill', '#fff');
+			.attr('x', 10)
+			.attr('y', 3)
+			.attr('fill', '#fff')
+			.style('font-size', '12px');
 
-		// Simple force simulation
+		// Force simulation
 		const simulation = d3
-			.forceSimulation(nodes)
+			.forceSimulation<GraphNode>(nodes)
 			.force(
 				'link',
-				d3.forceLink<GraphNode, GraphLink>(links).id((d) => d.id)
+				d3
+					.forceLink<GraphNode, GraphLink>(links)
+					.id((d) => d.id)
+					.distance(50)
+					.strength(1)
 			)
 			.force('charge', d3.forceManyBody().strength(-200))
-			.force('center', d3.forceCenter(width / 2, height / 2));
+			.force('center', d3.forceCenter(width / 2, height / 2))
+			.force('collision', d3.forceCollide().radius(20));
 
 		// Update positions
 		simulation.on('tick', () => {
@@ -111,13 +158,6 @@
 			node.attr('transform', (d) => `translate(${d.x},${d.y})`);
 		});
 	}
-
-	const colors: Record<MediaType, string> = {
-		audio: '#ff7675',
-		image: '#74b9ff',
-		video: '#55efc4',
-		text: '#ffeaa7'
-	};
 
 	onMount(() => createGraph());
 </script>
