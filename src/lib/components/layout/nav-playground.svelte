@@ -7,14 +7,16 @@
 	import Forward from 'lucide-svelte/icons/forward';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import SquareTerminal from 'lucide-svelte/icons/square-terminal';
+	import Chart from 'lucide-svelte/icons/chart-no-axes-combined';
 	import History from 'lucide-svelte/icons/history';
 	import { page } from '$app/stores';
 
 	const sidebar = useSidebar();
 
 	const playgroundItems = [
-		{ name: 'Inference', url: '/', icon: SquareTerminal },
-		{ name: 'History', url: '/', icon: History }
+		{ name: 'Visualization', url: '/playground/visualization', icon: Chart },
+		{ name: 'Inference', url: '/playground/inference', icon: SquareTerminal },
+		{ name: 'History', url: '/playground/history', icon: History }
 	];
 
 	// Function to check if a URL is active

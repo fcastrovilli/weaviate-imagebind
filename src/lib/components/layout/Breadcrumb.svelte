@@ -34,14 +34,18 @@
 	<Breadcrumb.List>
 		{#if items.length > ITEMS_TO_DISPLAY}
 			<Breadcrumb.Item>
-				<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+				{#snippet children()}
+					<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+				{/snippet}
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>
 				{#if isDesktop.matches}
 					<DropdownMenu.Root bind:open>
 						<DropdownMenu.Trigger class="flex items-center gap-1" aria-label="Toggle menu">
-							<Breadcrumb.Ellipsis class="size-4" />
+							{#snippet children()}
+								<Breadcrumb.Ellipsis class="size-4" />
+							{/snippet}
 						</DropdownMenu.Trigger>
 						<DropdownMenu.Content align="start">
 							{#each items.slice(1, -2) as item}
@@ -54,7 +58,9 @@
 				{:else}
 					<Drawer.Root bind:open>
 						<Drawer.Trigger aria-label="Toggle Menu">
-							<Breadcrumb.Ellipsis class="size-4" />
+							{#snippet children()}
+								<Breadcrumb.Ellipsis class="size-4" />
+							{/snippet}
 						</Drawer.Trigger>
 						<Drawer.Content>
 							<Drawer.Header class="text-left">
@@ -69,7 +75,9 @@
 								{/each}
 							</div>
 							<Drawer.Footer class="pt-4">
-								<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close>
+								{#snippet children()}
+									<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close>
+								{/snippet}
 							</Drawer.Footer>
 						</Drawer.Content>
 					</Drawer.Root>
@@ -80,18 +88,20 @@
 
 		{#each items.slice(-ITEMS_TO_DISPLAY + 1) as item, i (i)}
 			<Breadcrumb.Item>
-				{#if item.href}
-					<Breadcrumb.Link href={item.href} class="max-w-20 truncate md:max-w-none">
-						{item.label}
-					</Breadcrumb.Link>
-					{#if i !== items.length - 1}
-						<Breadcrumb.Separator />
+				{#snippet children()}
+					{#if item.href}
+						<Breadcrumb.Link href={item.href} class="max-w-20 truncate md:max-w-none">
+							{item.label}
+						</Breadcrumb.Link>
+						{#if i !== items.length - 1}
+							<Breadcrumb.Separator />
+						{/if}
+					{:else}
+						<Breadcrumb.Page class="max-w-20 truncate md:max-w-none">
+							{item.label}
+						</Breadcrumb.Page>
 					{/if}
-				{:else}
-					<Breadcrumb.Page class="max-w-20 truncate md:max-w-none">
-						{item.label}
-					</Breadcrumb.Page>
-				{/if}
+				{/snippet}
 			</Breadcrumb.Item>
 		{/each}
 	</Breadcrumb.List>

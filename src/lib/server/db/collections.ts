@@ -1,4 +1,3 @@
-import weaviate from 'weaviate-client';
 import { getClient } from '.';
 import type { CollectionInterface } from '$lib/types';
 
@@ -102,44 +101,9 @@ export const deleteCollection = async (collection: string) => {
 	return client.collections.delete(collection);
 };
 
-export const createFullCollection = async (name: string) => {
-	const client = await getClient();
-	return client.collections.create({
-		name: name,
-		properties: [
-			{
-				name: 'text',
-				dataType: 'text'
-			},
-			{
-				name: 'audio',
-				dataType: 'blob'
-			},
-			{
-				name: 'image',
-				dataType: 'blob'
-			}
-		],
-		vectorizers: [
-			weaviate.configure.vectorizer.multi2VecBind({
-				textFields: [{ name: 'text', weight: 0.5 }],
-				audioFields: [{ name: 'audio', weight: 0.4 }],
-				imageFields: [{ name: 'image', weight: 0.7 }]
-			})
-		]
-	});
-};
-
-export const createImageCollection = async (name: string) => {
-	const client = await getClient();
-	return client.collections.create({
-		name: name,
-		properties: [{ name: 'image', dataType: 'blob' }],
-		vectorizers: [
-			weaviate.configure.vectorizer.multi2VecBind({
-				name: 'title_vector',
-				imageFields: [{ name: 'image', weight: 1.0 }]
-			})
-		]
-	});
+export const getAllFilesFromCollection = async (collection_name: string) => {
+	const collection = await getCollection(collection_name);
+	if (!collection) return null;
+	const files = await collection.query.fetchObjects();
+	return files.objects;
 };

@@ -1,11 +1,10 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
 	import ImageIcon from 'lucide-svelte/icons/image';
-	import AudioIcon from 'lucide-svelte/icons/audio-waveform';
+	import AudioIcon from 'lucide-svelte/icons/audio-lines';
 	import VideoIcon from 'lucide-svelte/icons/video';
 	import TextIcon from 'lucide-svelte/icons/file-text';
 	import { activeCollection } from '$lib/stores';
-	import type { CollectionConfig } from '$lib/stores';
 
 	type IconMapKey = 'Images' | 'Audios' | 'Videos' | 'Texts';
 	type MediaType = {
