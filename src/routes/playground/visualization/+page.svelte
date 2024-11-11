@@ -1,9 +1,7 @@
 <script lang="ts">
 	import * as d3 from 'd3';
 	import type { MediaObject, MediaType, GraphNode, GraphLink } from '$lib/types/visualization';
-
 	import { onMount } from 'svelte';
-	import type { WeaviateField } from 'weaviate-client';
 
 	let { data } = $props();
 	let svg: SVGSVGElement;
@@ -16,55 +14,25 @@
 		return 'text';
 	}
 
-	function getFieldValue(field: WeaviateField): string {
-		if (field === null || field === undefined) return '';
-
-		// Handle primitive types
-		if (typeof field === 'string' || typeof field === 'number' || typeof field === 'boolean') {
-			return String(field);
-		}
-
-		// Handle array types
-		if (Array.isArray(field)) {
-			return field.map(String).join(', ');
-		}
-
-		// Handle object types (like nested fields)
-		if (typeof field === 'object') {
-			// Try to get a string representation of the object
-			try {
-				const stringValue = JSON.stringify(field);
-				return stringValue === '{}' ? '' : stringValue;
-			} catch {
-				return '';
-			}
-		}
-
-		return '';
-	}
-
 	function createGraph() {
 		if (!data?.visualization?.objects || !svg) return;
 
+		// Log data for debugging
+		console.log('Objects:', data.visualization.objects);
+		console.log('Relations:', data.visualization.relations);
+
 		const width = 800;
 		const height = 600;
-		const radius = 6;
 
-		// Prepare nodes and links as before...
-		const nodes: GraphNode[] = data.visualization.objects.map((obj) => {
-			const titleField = obj.properties['title'];
-			const label = titleField ? getFieldValue(titleField) : 'Untitled';
+		// Create nodes
+		const nodes: GraphNode[] = data.visualization.objects.map((obj) => ({
+			id: obj.uuid,
+			label: String(obj.properties['title'] ?? ''),
+			type: getMediaType(obj),
+			weight: 0
+		}));
 
-			return {
-				id: obj.uuid,
-				label,
-				type: getMediaType(obj),
-				weight: 0,
-				x: width / 2 + Math.random() * 50,
-				y: height / 2 + Math.random() * 50
-			};
-		});
-
+		// Create links
 		const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 		const links: GraphLink[] = data.visualization.relations
 			.map((rel) => {
@@ -75,182 +43,64 @@
 			})
 			.filter((link): link is GraphLink => link !== null);
 
-		// Setup SVG with zoom support
-		const svg_container = d3
-			.select<SVGSVGElement, unknown>(svg)
-			.attr('viewBox', `0 0 ${width} ${height}`)
-			.html('');
+		// Basic SVG setup
+		const svg_container = d3.select(svg).attr('viewBox', `0 0 ${width} ${height}`).html('');
 
-		// Create zoom behavior
-		const zoom = d3
-			.zoom<SVGSVGElement, unknown>()
-			.scaleExtent([0.2, 4]) // Set min/max zoom scale
-			.on('zoom', (event) => {
-				g.attr('transform', event.transform);
-			});
-
-		// Add zoom behavior to SVG
-		svg_container.call(zoom);
-
-		// Create main group for all elements
+		// Create container group for zooming
 		const g = svg_container.append('g');
 
-		// Add double-click to reset zoom
-		svg_container.on('dblclick.zoom', () => {
-			svg_container.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
-		});
+		// Add zoom behavior to SVG
+		svg_container.call(
+			d3
+				.zoom<SVGSVGElement, unknown>()
+				.extent([
+					[0, 0],
+					[width, height]
+				])
+				.scaleExtent([0.1, 4])
+				.on('zoom', (event) => {
+					g.attr('transform', event.transform);
+				})
+		);
 
-		// Draw links with enhanced styling
+		// Draw links
 		const link = g
 			.append('g')
-			.attr('stroke', '#666')
-			.attr('stroke-opacity', 0.6)
 			.selectAll('line')
 			.data(links)
 			.join('line')
-			.attr('stroke-width', (d) => Math.sqrt(d.strength) * 2);
+			.attr('stroke', '#666')
+			.attr('stroke-width', (d) => d.strength * 2);
 
-		// Draw nodes with interaction
-		const node = g
-			.append('g')
-			.selectAll('g')
-			.data(nodes)
-			.join('g')
-			.call(
-				d3
-					.drag<any, GraphNode>()
-					.on('start', (event, d) => {
-						if (!event.active) simulation.alphaTarget(0.3).restart();
-						d.fx = event.x;
-						d.fy = event.y;
-					})
-					.on('drag', (event, d) => {
-						d.fx = event.x;
-						d.fy = event.y;
-					})
-					.on('end', (event, d) => {
-						if (!event.active) simulation.alphaTarget(0);
-						d.fx = null;
-						d.fy = null;
-					})
-			);
+		// Draw nodes
+		const node = g.append('g').selectAll('g').data(nodes).join('g');
 
-		// Add circles with hover effects
+		// Add circles
 		node
 			.append('circle')
-			.attr('r', radius)
+			.attr('r', 6)
 			.attr('fill', (d) => colors[d.type])
-			.attr('stroke', '#fff')
-			.attr('stroke-width', 1.5)
-			.on('mouseover', function (event, d) {
-				d3.select(this)
-					.transition()
-					.duration(200)
-					.attr('r', radius * 1.5)
-					.attr('stroke-width', 2);
+			.attr('stroke', '#fff');
 
-				// Highlight connected nodes
-				const connectedNodes = links
-					.filter((l) => l.source.id === d.id || l.target.id === d.id)
-					.flatMap((l) => [l.source.id, l.target.id]);
-
-				node
-					.selectAll('circle')
-					.filter((n: any) => connectedNodes.includes(n.id))
-					.transition()
-					.duration(200)
-					.attr('stroke', '#ffd700')
-					.attr('stroke-width', 2);
-
-				// Highlight connected links
-				link
-					.filter((l) => l.source.id === d.id || l.target.id === d.id)
-					.transition()
-					.duration(200)
-					.attr('stroke', '#ffd700')
-					.attr('stroke-width', (d) => Math.sqrt(d.strength) * 3);
-			})
-			.on('mouseout', function (event, d) {
-				d3.select(this).transition().duration(200).attr('r', radius).attr('stroke-width', 1.5);
-
-				// Reset highlights
-				node
-					.selectAll('circle')
-					.transition()
-					.duration(200)
-					.attr('stroke', '#fff')
-					.attr('stroke-width', 1.5);
-
-				link
-					.transition()
-					.duration(200)
-					.attr('stroke', '#666')
-					.attr('stroke-width', (d) => Math.sqrt(d.strength) * 2);
-			});
-
-		// Add labels with better visibility
+		// Add labels
 		node
 			.append('text')
-			.attr('x', radius + 4)
-			.attr('y', '0.31em')
+			.attr('x', 8)
+			.attr('y', 4)
 			.text((d) => d.label)
-			.clone(true)
-			.lower()
-			.attr('fill', 'none')
-			.attr('stroke', 'white')
-			.attr('stroke-width', 3);
+			.attr('fill', '#fff');
 
-		// Optimized force simulation with adjusted parameters
+		// Simple force simulation
 		const simulation = d3
 			.forceSimulation(nodes)
 			.force(
 				'link',
-				d3
-					.forceLink<GraphNode, GraphLink>(links)
-					.id((d) => d.id)
-					.distance((d) => 50 + 50 * (1 - d.strength)) // Reduced base distance
-					.strength((d) => 0.5 + d.strength * 0.5) // Stronger links
+				d3.forceLink<GraphNode, GraphLink>(links).id((d) => d.id)
 			)
-			.force(
-				'charge',
-				d3
-					.forceManyBody()
-					.strength(-300) // Reduced repulsion
-					.distanceMax(200) // Limit repulsion range
-			)
-			.force(
-				'center',
-				d3.forceCenter(width / 2, height / 2).strength(0.3) // Added strength to center force
-			)
-			.force(
-				'collision',
-				d3
-					.forceCollide()
-					.radius(radius * 2)
-					.strength(0.8) // Increased collision strength
-			)
-			// Add x and y forces to prevent extreme spreading
-			.force('x', d3.forceX(width / 2).strength(0.05))
-			.force('y', d3.forceY(height / 2).strength(0.05));
+			.force('charge', d3.forceManyBody().strength(-200))
+			.force('center', d3.forceCenter(width / 2, height / 2));
 
-		// Initial positioning in a smaller area
-		nodes.forEach((node, i) => {
-			const angle = (i / nodes.length) * 2 * Math.PI;
-			const radius = Math.min(width, height) / 4; // Smaller initial radius
-			node.x = width / 2 + radius * Math.cos(angle);
-			node.y = height / 2 + radius * Math.sin(angle);
-		});
-
-		// Adjust initial zoom to show all nodes
-		const initialScale = 0.8;
-		svg_container.call(
-			zoom.transform,
-			d3.zoomIdentity
-				.translate(width / 2, height / 2)
-				.scale(initialScale)
-				.translate(-width / 2, -height / 2)
-		);
-
+		// Update positions
 		simulation.on('tick', () => {
 			link
 				.attr('x1', (d) => d.source.x!)
@@ -273,12 +123,6 @@
 </script>
 
 <div class="relative h-full w-full">
-	<div class="absolute bottom-4 right-4 rounded bg-background/80 p-2 text-sm backdrop-blur">
-		<p>Mouse wheel to zoom</p>
-		<p>Drag to pan</p>
-		<p>Double-click to reset</p>
-		<p>Hover nodes to highlight connections</p>
-	</div>
 	<svg
 		bind:this={svg}
 		class="h-full w-full rounded-lg border border-border bg-[#111]"
