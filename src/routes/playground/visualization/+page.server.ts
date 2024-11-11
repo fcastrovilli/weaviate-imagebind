@@ -24,41 +24,53 @@ export const load = async ({ cookies, depends }) => {
 	const relations: Relation[] = [];
 	const seen = new Set<string>();
 
-	// Get semantic relationships from Weaviate
+	// First, find semantic matches (same base name)
 	for (const obj of allObjects.objects) {
-		const similar = await collection.query.nearObject(obj.uuid, {
-			returnMetadata: ['distance'],
-			limit: allObjects.objects.length // Get all possible matches
-		});
+		const sourceBase = obj.properties['title']?.toString().split('_')[0];
+		if (!sourceBase) continue;
 
-		// Process similarity results
-		for (const target of similar.objects) {
-			// Skip self-references
-			if (target.uuid === obj.uuid) continue;
+		for (const target of allObjects.objects) {
+			if (obj.uuid === target.uuid) continue;
 
-			// Get distance safely with fallback
-			const distance = target.metadata?.distance;
-			if (distance === undefined) continue;
+			const targetBase = target.properties['title']?.toString().split('_')[0];
+			if (!targetBase || sourceBase !== targetBase) continue;
 
-			// Create unique key for this relationship
 			const key = [obj.uuid, target.uuid].sort().join('-');
 			if (seen.has(key)) continue;
 
-			// Keep stronger connections (distance < 0.4) and semantic matches
-			const sourceTitle = obj.properties['title'];
-			const targetTitle = target.properties['title'];
-			const isSemantic =
-				sourceTitle?.toString().split('_')[0] === targetTitle?.toString().split('_')[0];
+			seen.add(key);
+			relations.push({
+				source: obj.uuid,
+				target: target.uuid,
+				distance: 0.3, // Fixed distance for semantic matches
+				key
+			});
+		}
+	}
 
-			if (distance < 0.4 || isSemantic) {
-				seen.add(key);
-				relations.push({
-					source: obj.uuid,
-					target: target.uuid,
-					distance: isSemantic ? Math.min(distance, 0.3) : distance, // Boost semantic matches
-					key
-				});
-			}
+	// Then, find vector similarity matches
+	for (const obj of allObjects.objects) {
+		const similar = await collection.query.nearObject(obj.uuid, {
+			returnMetadata: ['distance'],
+			limit: 5 // Only get top 3 most similar objects
+		});
+
+		for (const target of similar.objects) {
+			if (target.uuid === obj.uuid) continue;
+
+			const distance = target.metadata?.distance;
+			if (distance === undefined || distance > 0.35) continue;
+
+			const key = [obj.uuid, target.uuid].sort().join('-');
+			if (seen.has(key)) continue;
+
+			seen.add(key);
+			relations.push({
+				source: obj.uuid,
+				target: target.uuid,
+				distance,
+				key
+			});
 		}
 	}
 
