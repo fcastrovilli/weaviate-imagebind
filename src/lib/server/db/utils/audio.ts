@@ -14,7 +14,7 @@ export const getAudioExtension = (mimeType: string): string => {
 	return entry ? entry[0] : 'mp3'; // default to mp3 if unknown
 };
 
-export const getAudios = async (collection_name: string) => {
+export const getAudios = async (collection_name: string, return_audio: boolean = true) => {
 	const collection = await getCollection(collection_name);
 	if (!collection) {
 		return null;
@@ -33,8 +33,13 @@ export const getAudios = async (collection_name: string) => {
 			: [])
 	);
 
+	const returnProperties = ['title', 'createdAt'];
+	if (return_audio) {
+		returnProperties.push('audio');
+	}
+
 	const result = await collection.query.fetchObjects({
-		returnProperties: ['title', 'audio', 'createdAt'],
+		returnProperties,
 		filters: filters,
 		limit: 100
 	});
