@@ -7,20 +7,20 @@
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { page } from '$app/stores';
 
-	// Add type for breadcrumb items
 	type BreadcrumbItem = {
 		href?: string;
 		label: string;
 	};
 
-	// Function to capitalize first letter
 	const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
-	// Convert route segments into proper breadcrumb items
-	let items: BreadcrumbItem[] = $state([]);
+	let items = $state<BreadcrumbItem[]>([]);
+	let open = $state(false);
+	let isDesktop = $state(false);
+
 	const ITEMS_TO_DISPLAY = 3;
 
-	onMount(() => {
+	$effect(() => {
 		items = $page.url.pathname
 			.split('/')
 			.slice(1)
@@ -29,9 +29,6 @@
 				label: capitalize(segment || 'Home')
 			}));
 	});
-
-	let open = $state(false);
-	let isDesktop = $state(false);
 
 	onMount(() => {
 		const mediaQuery = new MediaQuery('(min-width: 768px)');
@@ -43,77 +40,64 @@
 	<Breadcrumb.List>
 		{#if items.length > ITEMS_TO_DISPLAY}
 			<Breadcrumb.Item>
-				{#snippet children()}
-					<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
-				{/snippet}
+				<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>
-				{#snippet children()}
-					{#if isDesktop}
-						<DropdownMenu.Root bind:open>
-							<DropdownMenu.Trigger class="flex items-center gap-1" aria-label="Toggle menu">
-								{#snippet children()}
-									<Breadcrumb.Ellipsis class="size-4" />
-								{/snippet}
-							</DropdownMenu.Trigger>
-							<DropdownMenu.Content align="start">
+				{#if isDesktop}
+					<DropdownMenu.Root bind:open>
+						<DropdownMenu.Trigger class="flex items-center gap-1" aria-label="Toggle menu">
+							<Breadcrumb.Ellipsis class="size-4" />
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="start">
+							{#each items.slice(1, -2) as item}
+								<DropdownMenu.Item>
+									<a href={item.href ?? '#'}>{item.label}</a>
+								</DropdownMenu.Item>
+							{/each}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				{:else}
+					<Drawer.Root bind:open>
+						<Drawer.Trigger aria-label="Toggle Menu">
+							<Breadcrumb.Ellipsis class="size-4" />
+						</Drawer.Trigger>
+						<Drawer.Content>
+							<Drawer.Header class="text-left">
+								<Drawer.Title>Navigate to</Drawer.Title>
+								<Drawer.Description>Select a page to navigate to.</Drawer.Description>
+							</Drawer.Header>
+							<div class="grid gap-1 px-4">
 								{#each items.slice(1, -2) as item}
-									<DropdownMenu.Item>
-										<a href={item.href ?? '#'}>{item.label}</a>
-									</DropdownMenu.Item>
+									<a href={item.href ?? '#'} class="py-1 text-sm">
+										{item.label}
+									</a>
 								{/each}
-							</DropdownMenu.Content>
-						</DropdownMenu.Root>
-					{:else}
-						<Drawer.Root bind:open>
-							<Drawer.Trigger aria-label="Toggle Menu">
-								{#snippet children()}
-									<Breadcrumb.Ellipsis class="size-4" />
-								{/snippet}
-							</Drawer.Trigger>
-							<Drawer.Content>
-								<Drawer.Header class="text-left">
-									<Drawer.Title>Navigate to</Drawer.Title>
-									<Drawer.Description>Select a page to navigate to.</Drawer.Description>
-								</Drawer.Header>
-								<div class="grid gap-1 px-4">
-									{#each items.slice(1, -2) as item}
-										<a href={item.href ?? '#'} class="py-1 text-sm">
-											{item.label}
-										</a>
-									{/each}
-								</div>
-								<Drawer.Footer class="pt-4">
-									{#snippet children()}
-										<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close
-										>
-									{/snippet}
-								</Drawer.Footer>
-							</Drawer.Content>
-						</Drawer.Root>
-					{/if}
-				{/snippet}
+							</div>
+							<Drawer.Footer class="pt-4">
+								<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close>
+							</Drawer.Footer>
+						</Drawer.Content>
+					</Drawer.Root>
+				{/if}
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 		{/if}
 
 		{#each items.slice(-ITEMS_TO_DISPLAY + 1) as item, i (i)}
 			<Breadcrumb.Item>
-				{#snippet children()}
-					{#if item.href}
-						<Breadcrumb.Link href={item.href} class="max-w-20 truncate md:max-w-none">
-							{item.label}
-						</Breadcrumb.Link>
-						{#if i !== items.length - 1}
-							<Breadcrumb.Separator />
-						{/if}
-					{:else}
-						<Breadcrumb.Page class="max-w-20 truncate md:max-w-none">
-							{item.label}
-						</Breadcrumb.Page>
+				{#if item.href}
+					<Breadcrumb.Link href={item.href} class="max-w-20 truncate md:max-w-none">
+						{item.label}
+					</Breadcrumb.Link>
+					{#if i !== items.length - 1}
+						<Breadcrumb.Separator />
 					{/if}
-				{/snippet}
+				{:else}
+					<Breadcrumb.Page class="max-w-20 truncate md:max-w-none">
+						{item.label}
+					</Breadcrumb.Page>
+				{/if}
 			</Breadcrumb.Item>
 		{/each}
 	</Breadcrumb.List>
