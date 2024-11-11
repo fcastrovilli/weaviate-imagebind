@@ -8,9 +8,34 @@ export const load = async ({ cookies, depends }) => {
 	const collection = await getCollection(collectionName!);
 	if (!collection) return { visualization: null };
 
-	// Get initial objects
+	// Get the schema first to check available properties
+	const schema = await collection.config.get();
+	if (!schema) return { visualization: null };
+
+	// Extract available media properties from schema
+	const properties = schema.properties?.map((prop) => prop.name) || [];
+
+	// For now, let's only request the basic properties without metadata
+	const requiredProps = ['title'];
+
+	// Add only media content properties, skip metadata for now
+	if (properties.includes('image')) {
+		requiredProps.push('image');
+	}
+	if (properties.includes('audio')) {
+		requiredProps.push('audio');
+	}
+	if (properties.includes('video')) {
+		requiredProps.push('video');
+	}
+	if (properties.includes('text')) {
+		requiredProps.push('text');
+	}
+
+	// Get initial objects with only available properties
 	const allObjects = await collection.query.fetchObjects({
-		limit: 100
+		limit: 100,
+		returnProperties: requiredProps
 	});
 
 	if (!allObjects.objects.length) return { visualization: null };
@@ -46,6 +71,7 @@ export const load = async ({ cookies, depends }) => {
 	for (const obj of allObjects.objects) {
 		const similar = await collection.query.nearObject(obj.uuid, {
 			returnMetadata: ['distance'],
+			returnProperties: requiredProps,
 			limit: 5,
 			certainty: 0.1
 		});

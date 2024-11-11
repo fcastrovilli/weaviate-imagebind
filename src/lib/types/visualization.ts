@@ -18,6 +18,7 @@ export interface WeaviateProperties {
 // Define our expected property structure
 export interface ObjectProperties {
 	title: string;
+	data: string; // Base64 encoded media data
 	audioMetadata?: {
 		duration?: number;
 		format?: string;

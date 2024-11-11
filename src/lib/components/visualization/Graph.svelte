@@ -9,6 +9,7 @@
 	} from '$lib/utils/visualization';
 	import * as d3 from 'd3';
 	import { onMount } from 'svelte';
+	import MediaCard from './MediaCard.svelte';
 
 	let {
 		data,
@@ -23,6 +24,10 @@
 	let currentSimulation: d3.Simulation<GraphNode, GraphLink> | null = null;
 	let linkElements: d3.Selection<SVGLineElement, GraphLink, SVGGElement, unknown>;
 	let nodeElements: d3.Selection<SVGGElement, GraphNode, SVGGElement, unknown>;
+
+	let hoveredNode: GraphNode | null = $state(null);
+	let hoveredObject: MediaObject | null = $state(null);
+	let mousePosition = $state({ x: 0, y: 0 });
 
 	function initializeGraph() {
 		if (!data?.objects || !svg) return;
@@ -114,7 +119,9 @@
 					.attr('r', GRAPH_DEFAULTS.nodeRadius)
 					.attr('fill', (d) => COLORS[d.type])
 					.attr('stroke', '#fff')
-					.attr('stroke-width', 1.5);
+					.attr('stroke-width', 1.5)
+					.on('mouseenter', (event, d) => handleNodeHover(event, d))
+					.on('mouseleave', handleNodeLeave);
 				g.append('text')
 					.text((d) => d.label)
 					.attr('x', 10)
@@ -163,6 +170,17 @@
 		currentSimulation.alpha(0.3).restart();
 	}
 
+	function handleNodeHover(event: MouseEvent, node: GraphNode) {
+		mousePosition = { x: event.clientX + 20, y: event.clientY + 20 };
+		hoveredNode = node;
+		hoveredObject = data.objects.find((obj) => obj.uuid === node.id) ?? null;
+	}
+
+	function handleNodeLeave() {
+		hoveredNode = null;
+		hoveredObject = null;
+	}
+
 	// Initialize graph once
 	onMount(() => {
 		initializeGraph();
@@ -174,8 +192,10 @@
 	});
 </script>
 
-<svg
-	bind:this={svg}
-	class="h-full w-full rounded-lg border border-border bg-[#111]"
-	style="min-height: 600px"
-/>
+<div class="relative">
+	<svg bind:this={svg} class="h-full w-full rounded-lg border border-border bg-[#111]" />
+
+	{#if hoveredNode && hoveredObject}
+		<MediaCard mediaObject={hoveredObject} position={mousePosition} type={hoveredNode.type} />
+	{/if}
+</div>

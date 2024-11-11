@@ -23,15 +23,21 @@ export const COLORS: Record<MediaType, string> = {
 };
 
 export function getMediaType(obj: MediaObject): MediaType {
-	if (obj.properties['audioMetadata'] !== undefined && obj.properties['audioMetadata'] !== null) {
-		return 'audio';
-	}
-	if (obj.properties['imageMetadata'] !== undefined && obj.properties['imageMetadata'] !== null) {
+	// Check for actual media data presence
+	if ('image' in obj.properties && obj.properties['image']) {
 		return 'image';
 	}
-	if (obj.properties['videoMetadata'] !== undefined && obj.properties['videoMetadata'] !== null) {
+	if ('audio' in obj.properties && obj.properties['audio']) {
+		return 'audio';
+	}
+	if ('video' in obj.properties && obj.properties['video']) {
 		return 'video';
 	}
+	if ('text' in obj.properties && obj.properties['text']) {
+		return 'text';
+	}
+
+	// Default to text if no media type is found
 	return 'text';
 }
 
