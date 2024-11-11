@@ -182,7 +182,16 @@
 
 		currentSimulation
 			.force('charge', d3.forceManyBody().strength(chargeStrength).distanceMax(300))
-			.force('center', d3.forceCenter(width / 2, height / 2).strength(centerStrength))
+			.force(
+				'center',
+				d3
+					.forceRadial(
+						0, // radius - 0 means towards center
+						width / 2, // centerX
+						height / 2 // centerY
+					)
+					.strength(centerStrength) // Now acts as gravitational pull
+			)
 			.force('collision', d3.forceCollide().radius(20).strength(collisionStrength));
 
 		// Gently reheat
@@ -211,7 +220,7 @@
 				type="range"
 				min="0"
 				max="1"
-				step="0.01"
+				step="0.001"
 				bind:value={distanceThreshold}
 				class="w-48"
 			/>
@@ -241,7 +250,7 @@
 				type="range"
 				min="0"
 				max="1"
-				step="0.05"
+				step="0.01"
 				bind:value={linkStrength}
 				class="w-48"
 			/>
@@ -256,7 +265,7 @@
 				type="range"
 				min="-500"
 				max="0"
-				step="20"
+				step="10"
 				bind:value={chargeStrength}
 				class="w-48"
 			/>
@@ -269,9 +278,9 @@
 			<input
 				id="centerStrength"
 				type="range"
-				min="0"
-				max="2"
-				step="0.1"
+				min="-0.1"
+				max="0.8"
+				step="0.01"
 				bind:value={centerStrength}
 				class="w-48"
 			/>
@@ -286,7 +295,7 @@
 				type="range"
 				min="0"
 				max="1"
-				step="0.05"
+				step="0.01"
 				bind:value={collisionStrength}
 				class="w-48"
 			/>
