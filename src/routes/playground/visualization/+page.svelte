@@ -1,360 +1,179 @@
 <script lang="ts">
 	import * as d3 from 'd3';
-	import type {
-		NetworkData,
-		NetworkNode,
-		NetworkLink,
-		WeaviateObject,
-		MediaType
-	} from '$lib/types/visualization';
-	import type { ZoomBehavior } from 'd3';
+	import type { MediaObject, MediaType, GraphNode, GraphLink } from '$lib/types/visualization';
+	import { onMount } from 'svelte';
 
-	let { data } = $props<{ files: WeaviateObject[] | null }>();
-	let files = $state(data?.files ?? []);
+	let { data } = $props();
 	let svg: SVGSVGElement;
-	let zoomLevel = $state(1);
-	let zoomBehavior: ZoomBehavior<SVGSVGElement, unknown> | null = null;
+	let hoveredNode: GraphNode | null = $state(null);
 
-	function getNodeType(file: WeaviateObject): MediaType {
-		if (file.properties.audioMetadata) return 'audio';
-		if (file.properties.imageMetadata) return 'image';
-		if (file.properties.videoMetadata) return 'video';
-		if (file.properties.text) return 'text';
-		return 'text'; // fallback to text
+	function getMediaType(obj: MediaObject): MediaType {
+		if (obj.properties.audioMetadata) return 'audio';
+		if (obj.properties.imageMetadata) return 'image';
+		if (obj.properties.videoMetadata) return 'video';
+		return 'text';
 	}
 
-	function getNodeColor(type: MediaType): string {
-		switch (type) {
-			case 'audio':
-				return '#ff7675'; // red
-			case 'image':
-				return '#74b9ff'; // blue
-			case 'video':
-				return '#55efc4'; // green
-			case 'text':
-				return '#ffeaa7'; // yellow
-			default:
-				return '#b2bec3'; // gray
-		}
+	function getColor(type: MediaType): string {
+		const colors = {
+			audio: '#ff7675',
+			image: '#74b9ff',
+			video: '#55efc4',
+			text: '#ffeaa7'
+		};
+		return colors[type];
 	}
 
-	function getNodeIcon(type: MediaType): string {
-		switch (type) {
-			case 'audio':
-				return '🔊';
-			case 'image':
-				return '🖼️';
-			case 'video':
-				return '🎥';
-			case 'text':
-				return '📄';
-			default:
-				return '❓';
-		}
-	}
+	function createGraph() {
+		if (!data?.visualization?.objects || !svg) return;
 
-	function transformDataToNetwork(files: WeaviateObject[]): NetworkData {
-		const nodes: NetworkNode[] = files.map((file) => ({
-			id: file.uuid,
-			title: file.properties.title,
-			type: getNodeType(file),
-			uuid: file.uuid,
+		const objects = data.visualization.objects as MediaObject[];
+		const width = 800;
+		const height = 600;
+
+		const nodes: GraphNode[] = objects.map((obj) => ({
+			id: obj.uuid,
+			label: obj.properties.title,
+			type: getMediaType(obj),
 			x: undefined,
 			y: undefined,
 			fx: null,
-			fy: null
+			fy: null,
+			weight: 0 // Initialize weight
 		}));
 
-		const links: NetworkLink[] = [];
+		const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
-		for (let i = 0; i < nodes.length; i++) {
-			for (let j = i + 1; j < nodes.length; j++) {
-				if (nodes[i].title === nodes[j].title) {
-					links.push({
-						source: nodes[i],
-						target: nodes[j],
-						value: 1
-					});
-				}
-			}
-		}
+		const links: GraphLink[] = objects.slice(1).map((obj) => {
+			const source = nodeMap.get(objects[0].uuid)!;
+			const target = nodeMap.get(obj.uuid)!;
+			const distance = (obj.metadata as { distance: number })?.distance ?? 0;
+			const strength = 1 - distance;
 
-		return { nodes, links };
-	}
+			// Update node weights
+			source.weight += strength;
+			target.weight += strength;
 
-	function initializeZoom(
-		svg_d3: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-		g: d3.Selection<SVGGElement, unknown, null, undefined>
-	) {
-		const width = parseInt(svg_d3.attr('viewBox').split(' ')[2]);
-		const height = parseInt(svg_d3.attr('viewBox').split(' ')[3]);
+			return { source, target, strength };
+		});
 
-		// Initialize zoom behavior
-		zoomBehavior = d3
-			.zoom<SVGSVGElement, unknown>()
-			.scaleExtent([0.1, 4])
-			.on('zoom', (event) => {
-				g.attr('transform', event.transform);
-				zoomLevel = event.transform.k;
-			});
+		// Scale node sizes based on their weights
+		const sizeScale = d3
+			.scaleLinear()
+			.domain([0, d3.max(nodes, (d) => d.weight) ?? 1])
+			.range([10, 30]);
 
-		// Get the bounds of the graph content
-		function getBBox() {
-			const bbox = g.node()?.getBBox() ?? { x: 0, y: 0, width, height };
-			return {
-				x: bbox.x,
-				y: bbox.y,
-				width: bbox.width,
-				height: bbox.height
-			};
-		}
+		const svgSelection = d3
+			.select<SVGSVGElement, unknown>(svg)
+			.attr('viewBox', `0 0 ${width} ${height}`)
+			.html('');
 
-		// Function to center and fit content
-		function centerAndFit(scale = 1) {
-			if (!zoomBehavior) return;
+		// Add zoom behavior
+		const zoom = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
+			container.attr('transform', event.transform);
+		});
 
-			const bounds = getBBox();
-			const fullWidth = width;
-			const fullHeight = height;
-			const padding = 40; // Padding around the content
+		svgSelection.call(zoom);
 
-			// Calculate the scale that would fit the content
-			const fitScale = Math.min(
-				(fullWidth - padding * 2) / bounds.width,
-				(fullHeight - padding * 2) / bounds.height
-			);
+		const container = svgSelection.append('g');
 
-			// Use the provided scale, but don't exceed the fit scale
-			const finalScale = Math.min(scale, fitScale);
-
-			// Calculate center point
-			const centerX = bounds.x + bounds.width / 2;
-			const centerY = bounds.y + bounds.height / 2;
-
-			// Calculate the transform
-			const transform = d3.zoomIdentity
-				.translate(fullWidth / 2, fullHeight / 2)
-				.scale(finalScale)
-				.translate(-centerX, -centerY);
-
-			// Apply the transform with transition
-			svg_d3.transition().duration(750).call(zoomBehavior.transform, transform);
-		}
-
-		// Apply zoom behavior to SVG
-		svg_d3.call(zoomBehavior);
-
-		// Center the graph initially
-		centerAndFit();
-
-		// Add zoom controls to SVG
-		const controls = svg_d3
-			.append('g')
-			.attr('class', 'zoom-controls')
-			.attr('transform', 'translate(20, 20)');
-
-		// Zoom in button
-		controls
-			.append('g')
-			.attr('class', 'zoom-button')
-			.attr('transform', 'translate(0, 0)')
-			.call(createZoomButton, '+', () => handleZoom(1.2, centerAndFit))
-			.append('title')
-			.text('Zoom In');
-
-		// Zoom out button
-		controls
-			.append('g')
-			.attr('class', 'zoom-button')
-			.attr('transform', 'translate(0, 40)')
-			.call(createZoomButton, '-', () => handleZoom(0.8, centerAndFit))
-			.append('title')
-			.text('Zoom Out');
-
-		// Reset/Center button
-		controls
-			.append('g')
-			.attr('class', 'zoom-button')
-			.attr('transform', 'translate(0, 80)')
-			.call(createZoomButton, '⟲', () => centerAndFit(1))
-			.append('title')
-			.text('Reset View');
-
-		// Style the zoom controls
-		svg_d3
-			.selectAll('.zoom-button')
-			.style('cursor', 'pointer')
-			.on('mouseenter', function () {
-				d3.select(this).select('rect').style('fill', '#2a2a2a');
-			})
-			.on('mouseleave', function () {
-				d3.select(this).select('rect').style('fill', '#1a1a1a');
-			});
-	}
-
-	function createZoomButton(
-		selection: d3.Selection<SVGGElement, unknown, null, undefined>,
-		text: string,
-		onClick: () => void
-	) {
-		// Button background
-		selection
-			.append('rect')
-			.attr('width', 30)
-			.attr('height', 30)
-			.attr('rx', 6)
-			.style('fill', '#1a1a1a')
-			.style('stroke', '#333')
-			.style('stroke-width', 1);
-
-		// Button text
-		selection
-			.append('text')
-			.attr('x', 15)
-			.attr('y', 15)
-			.attr('dy', '0.35em')
-			.attr('text-anchor', 'middle')
-			.style('fill', 'white')
-			.style('font-size', '18px')
-			.style('user-select', 'none')
-			.text(text);
-
-		// Add click handler
-		selection.on('click', onClick);
-
-		return selection;
-	}
-
-	function handleZoom(factor: number, centerCallback: (scale: number) => void) {
-		if (!zoomBehavior) return;
-
-		const svg_d3 = d3.select(svg);
-		const transform = d3.zoomTransform(svg_d3.node() as Element);
-		const newScale = transform.k * factor;
-
-		if (newScale >= 0.1 && newScale <= 4) {
-			centerCallback(newScale);
-		}
-	}
-
-	function createNetworkGraph() {
-		const width = 800;
-		const height = 600;
-		const networkData = transformDataToNetwork(files);
-
-		// Clear existing SVG content
-		d3.select(svg).selectAll('*').remove();
-
-		const svg_d3 = d3.select<SVGSVGElement, unknown>(svg).attr('viewBox', `0 0 ${width} ${height}`);
-
-		// Create a group for the zoomable content
-		const g = svg_d3.append<SVGGElement>('g');
-
-		// Initialize zoom
-		initializeZoom(svg_d3, g);
+		// Create arrow marker for directed links
+		container
+			.append('defs')
+			.append('marker')
+			.attr('id', 'arrow')
+			.attr('viewBox', '0 -5 10 10')
+			.attr('refX', 20)
+			.attr('refY', 0)
+			.attr('markerWidth', 6)
+			.attr('markerHeight', 6)
+			.attr('orient', 'auto')
+			.append('path')
+			.attr('d', 'M0,-5L10,0L0,5')
+			.attr('fill', '#999');
 
 		const simulation = d3
-			.forceSimulation<NetworkNode>(networkData.nodes)
+			.forceSimulation<GraphNode>(nodes)
 			.force(
 				'link',
-				d3.forceLink<NetworkNode, NetworkLink>(networkData.links).id((d) => d.id)
-			)
-			.force('charge', d3.forceManyBody().strength(-400))
-			.force('center', d3.forceCenter(width / 2, height / 2));
-
-		const links = g
-			.append('g')
-			.selectAll<SVGLineElement, NetworkLink>('line')
-			.data(networkData.links)
-			.join('line')
-			.style('stroke', '#999')
-			.style('stroke-opacity', 0.6)
-			.style('stroke-width', 2);
-
-		const nodeGroups = g
-			.append('g')
-			.selectAll<SVGGElement, NetworkNode>('g')
-			.data(networkData.nodes)
-			.join('g')
-			.call(
 				d3
-					.drag<SVGGElement, NetworkNode>()
-					.on('start', dragstarted)
-					.on('drag', dragged)
-					.on('end', dragended)
+					.forceLink<GraphNode, GraphLink>(links)
+					.id((d) => d.id)
+					.strength((d) => d.strength)
+			)
+			.force('charge', d3.forceManyBody().strength(-500))
+			.force('center', d3.forceCenter(width / 2, height / 2))
+			.force(
+				'collision',
+				d3.forceCollide<GraphNode>().radius((d) => sizeScale(d.weight) + 10)
 			);
 
-		// Create circular background
-		nodeGroups
+		const link = container
+			.append('g')
+			.selectAll<SVGLineElement, GraphLink>('line')
+			.data(links)
+			.join('line')
+			.attr('stroke', '#999')
+			.attr('stroke-opacity', (d) => 0.2 + d.strength * 0.8)
+			.attr('stroke-width', (d) => 1 + d.strength * 3)
+			.attr('marker-end', 'url(#arrow)');
+
+		const node = container.append('g').selectAll<SVGGElement, GraphNode>('g').data(nodes).join('g');
+
+		// Apply drag behavior with proper typing
+		const drag = d3
+			.drag<SVGGElement, GraphNode>()
+			.on('start', (event, d) => {
+				if (!event.active) simulation.alphaTarget(0.3).restart();
+				d.fx = event.x;
+				d.fy = event.y;
+			})
+			.on('drag', (event, d) => {
+				d.fx = event.x;
+				d.fy = event.y;
+			})
+			.on('end', (event, d) => {
+				if (!event.active) simulation.alphaTarget(0);
+				d.fx = null;
+				d.fy = null;
+			});
+
+		node
+			.call(drag as any) // Type assertion needed for D3's drag behavior
+			.on('mouseover', (_, d) => (hoveredNode = d))
+			.on('mouseout', () => (hoveredNode = null));
+
+		// Node circles with dynamic sizes
+		node
 			.append('circle')
-			.attr('r', 24)
-			.style('fill', (d) => getNodeColor(d.type))
-			.style('stroke', '#2d3436')
-			.style('stroke-width', 2);
+			.attr('r', (d) => sizeScale(d.weight))
+			.attr('fill', (d) => getColor(d.type))
+			.attr('stroke', '#fff')
+			.attr('stroke-width', 2);
 
-		// Add icon text
-		nodeGroups
+		// Node labels
+		node
 			.append('text')
-			.attr('class', 'icon')
-			.text((d) => getNodeIcon(d.type))
-			.attr('x', 0)
-			.attr('y', 0)
-			.attr('dy', '0.35em')
+			.text((d) => d.label)
 			.attr('text-anchor', 'middle')
-			.style('font-size', '16px')
-			.style('user-select', 'none');
+			.attr('dy', (d) => sizeScale(d.weight) + 15)
+			.attr('fill', '#fff')
+			.attr('font-size', '12px')
+			.attr('font-weight', 'bold');
 
-		// Add title text
-		nodeGroups
-			.append('text')
-			.text((d) => d.title)
-			.attr('x', 0)
-			.attr('y', 36)
-			.attr('text-anchor', 'middle')
-			.style('fill', 'white')
-			.style('font-size', '14px')
-			.style('font-weight', '500')
-			.style('text-shadow', '0 1px 2px rgba(0,0,0,0.5)');
-
-		// Update simulation tick function
 		simulation.on('tick', () => {
-			links
+			link
 				.attr('x1', (d) => d.source.x ?? 0)
 				.attr('y1', (d) => d.source.y ?? 0)
 				.attr('x2', (d) => d.target.x ?? 0)
 				.attr('y2', (d) => d.target.y ?? 0);
 
-			nodeGroups.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`);
+			node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`);
 		});
-
-		function dragstarted(event: d3.D3DragEvent<SVGGElement, NetworkNode, NetworkNode>) {
-			if (!event.active) simulation.alphaTarget(0.3).restart();
-			event.subject.fx = event.subject.x;
-			event.subject.fy = event.subject.y;
-		}
-
-		function dragged(event: d3.D3DragEvent<SVGGElement, NetworkNode, NetworkNode>) {
-			event.subject.fx = event.x;
-			event.subject.fy = event.y;
-		}
-
-		function dragended(event: d3.D3DragEvent<SVGGElement, NetworkNode, NetworkNode>) {
-			if (!event.active) simulation.alphaTarget(0);
-			event.subject.fx = null;
-			event.subject.fy = null;
-		}
 	}
 
-	// Remove the window event listener and use the buttons instead
-	$effect(() => {
-		if (files && files.length > 0) {
-			createNetworkGraph();
-		}
-
-		// Cleanup
-		return () => {
-			zoomBehavior = null;
-		};
+	onMount(() => {
+		createGraph();
 	});
 </script>
 
@@ -363,9 +182,11 @@
 		bind:this={svg}
 		class="h-full max-h-[600px] w-full max-w-4xl rounded-lg border border-border bg-background"
 	/>
-	<div
-		class="absolute bottom-6 right-6 flex items-center gap-2 rounded-md bg-background/80 px-3 py-2 backdrop-blur"
-	>
-		<span class="text-sm font-medium text-foreground">Zoom: {(zoomLevel * 100).toFixed(0)}%</span>
-	</div>
+	{#if hoveredNode}
+		<div class="absolute bottom-6 right-6 rounded-md bg-background/80 p-4 backdrop-blur">
+			<h3 class="font-bold">{hoveredNode.label}</h3>
+			<p class="text-sm">Type: {hoveredNode.type}</p>
+			<p class="text-sm">Connections: {hoveredNode.weight.toFixed(2)}</p>
+		</div>
+	{/if}
 </div>

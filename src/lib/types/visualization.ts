@@ -1,48 +1,50 @@
 import type { SimulationNodeDatum } from 'd3';
+import type { WeaviateObject } from 'weaviate-client';
 
 export type MediaType = 'audio' | 'image' | 'text' | 'video';
 
-export interface NetworkNode extends SimulationNodeDatum {
-	id: string;
+// Define the properties structure that matches our Weaviate schema
+export interface ObjectProperties {
 	title: string;
+	audioMetadata?: {
+		duration?: number;
+		format?: string;
+		size?: number;
+	};
+	imageMetadata?: {
+		width?: number;
+		height?: number;
+		format?: string;
+		size?: number;
+	};
+	videoMetadata?: {
+		duration?: number;
+		format?: string;
+		size?: number;
+	};
+	text?: string;
+}
+
+// Use WeaviateObject with our properties type
+export type MediaObject = WeaviateObject<ObjectProperties>;
+
+// D3 Graph types
+export interface GraphNode extends SimulationNodeDatum {
+	id: string;
+	label: string;
 	type: MediaType;
-	uuid: string;
 	x?: number;
 	y?: number;
 	fx?: number | null;
 	fy?: number | null;
+	weight: number;
 }
 
-export interface NetworkLink {
-	source: NetworkNode;
-	target: NetworkNode;
-	value: number;
+export interface GraphLink {
+	source: GraphNode;
+	target: GraphNode;
+	strength: number;
 }
 
-export interface NetworkData {
-	nodes: NetworkNode[];
-	links: NetworkLink[];
-}
-
-export interface WeaviateMetadata {
-	size?: number;
-	duration?: number;
-	format?: string;
-	width?: number;
-	height?: number;
-}
-
-export interface WeaviateProperties {
-	title: string;
-	audioMetadata?: WeaviateMetadata;
-	imageMetadata?: WeaviateMetadata;
-	videoMetadata?: WeaviateMetadata;
-	text?: string;
-}
-
-export interface WeaviateObject {
-	metadata: Record<string, unknown>;
-	properties: WeaviateProperties;
-	uuid: string;
-	vectors: Record<string, unknown>;
-}
+// Add type for D3 selections
+export type D3Selection = d3.Selection<d3.BaseType, unknown, null, undefined>;
