@@ -146,6 +146,8 @@
 				class:border-primary={dragActive || fileCount > 0}
 				class:bg-muted={fileCount > 0}
 				class:hover:bg-muted={true}
+				class:opacity-50={isUploading}
+				aria-disabled={isUploading}
 				ondragenter={handleDrag}
 				ondragover={handleDrag}
 				ondragleave={handleDrag}

@@ -132,6 +132,8 @@
 				class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 text-center transition-colors"
 				class:border-primary={dragActive || fileCount > 0}
 				class:bg-muted={fileCount > 0}
+				class:opacity-50={isUploading}
+				aria-disabled={isUploading}
 				class:hover:bg-muted={true}
 				ondragenter={handleDrag}
 				ondragover={handleDrag}
@@ -166,41 +168,39 @@
 			</div>
 
 			{#if previews.length > 0}
-				{#if isUploading}
-					<div class="grid gap-2" class:animate-pulse={isUploading}>
-						{#each previews as preview}
-							<div class="group relative rounded-md border bg-muted p-3">
-								<button
-									disabled={isUploading}
-									type="button"
-									class="absolute -right-2 -top-2 z-10 hidden rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 group-hover:block"
-									onclick={() => removeFile(preview.name)}
-								>
-									<X class="h-3 w-3" />
-								</button>
-								<div class="space-y-2">
-									<p class="truncate text-xs text-muted-foreground" title={preview.name}>
-										File: {preview.name}
-									</p>
-									<div class="space-y-1.5">
-										<label for={`title-${preview.name}`} class="text-sm font-medium"> Title </label>
-										<input
-											disabled={isUploading}
-											id={`title-${preview.name}`}
-											type="text"
-											name="titles"
-											value={preview.title}
-											placeholder="Enter a title for this audio"
-											class="w-full rounded-sm border bg-transparent px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-											onchange={(e) =>
-												updateTitle(preview.name, (e.target as HTMLInputElement).value)}
-										/>
-									</div>
+				<div class="grid gap-2" class:animate-pulse={isUploading}>
+					{#each previews as preview}
+						<div class="group relative rounded-md border bg-muted p-3">
+							<button
+								disabled={isUploading}
+								type="button"
+								class="absolute -right-2 -top-2 z-10 hidden rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 group-hover:block"
+								onclick={() => removeFile(preview.name)}
+							>
+								<X class="h-3 w-3" />
+							</button>
+							<div class="space-y-2">
+								<p class="truncate text-xs text-muted-foreground" title={preview.name}>
+									File: {preview.name}
+								</p>
+								<div class="space-y-1.5">
+									<label for={`title-${preview.name}`} class="text-sm font-medium"> Title </label>
+									<input
+										disabled={isUploading}
+										id={`title-${preview.name}`}
+										type="text"
+										name="titles"
+										value={preview.title}
+										placeholder="Enter a title for this audio"
+										class="w-full rounded-sm border bg-transparent px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+										onchange={(e) =>
+											updateTitle(preview.name, (e.target as HTMLInputElement).value)}
+									/>
 								</div>
 							</div>
-						{/each}
-					</div>
-				{/if}
+						</div>
+					{/each}
+				</div>
 				<Button
 					disabled={isUploading}
 					type="button"
