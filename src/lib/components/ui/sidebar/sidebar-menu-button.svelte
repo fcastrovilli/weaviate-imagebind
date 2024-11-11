@@ -75,7 +75,7 @@
 	{/if}
 {/snippet}
 
-{#if !import.meta.env.SSR && tooltipContent}
+{#if tooltipContent}
 	<Tooltip.Root>
 		<Tooltip.Trigger>
 			{#snippet child({ props })}
