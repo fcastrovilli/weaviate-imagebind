@@ -106,7 +106,7 @@
 </script>
 
 <div class="w-full space-y-4">
-	<DataTableToolbar {table} {fileType} {mimeType} />
+	<DataTableToolbar {table} {fileType} />
 
 	<div class="rounded-md border">
 		<Table.Root>

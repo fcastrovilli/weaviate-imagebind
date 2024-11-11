@@ -65,6 +65,22 @@
 		}
 	});
 
+	// Handle media autoplay
+	$effect(() => {
+		if (mediaData && currentUuid === mediaObject?.uuid) {
+			// Try to autoplay when media data becomes available
+			if (type === 'audio' && audioElement) {
+				audioElement.play().catch((error) => {
+					console.log('Autoplay prevented:', error.message);
+				});
+			} else if (type === 'video' && videoElement) {
+				videoElement.play().catch((error) => {
+					console.log('Autoplay prevented:', error.message);
+				});
+			}
+		}
+	});
+
 	function handleMouseLeave() {
 		if (audioElement) {
 			audioElement.pause();
@@ -169,7 +185,6 @@
 				<video
 					bind:this={videoElement}
 					controls
-					autoplay
 					muted
 					class="w-full"
 					src={getMediaUrl(mediaData, 'video')}
