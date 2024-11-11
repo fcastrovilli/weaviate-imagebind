@@ -52,14 +52,15 @@ export const load = async ({ cookies, depends }) => {
 	for (const obj of allObjects.objects) {
 		const similar = await collection.query.nearObject(obj.uuid, {
 			returnMetadata: ['distance'],
-			limit: 5 // Only get top 3 most similar objects
+			limit: 5,
+			certainty: 0.1
 		});
 
 		for (const target of similar.objects) {
 			if (target.uuid === obj.uuid) continue;
 
 			const distance = target.metadata?.distance;
-			if (distance === undefined || distance > 0.35) continue;
+			if (distance === undefined) continue;
 
 			const key = [obj.uuid, target.uuid].sort().join('-');
 			if (seen.has(key)) continue;
