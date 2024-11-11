@@ -1,237 +1,287 @@
 <script lang="ts">
 	import * as d3 from 'd3';
 	import type { MediaObject, MediaType, GraphNode, GraphLink } from '$lib/types/visualization';
+
 	import { onMount } from 'svelte';
+	import type { WeaviateField } from 'weaviate-client';
 
 	let { data } = $props();
 	let svg: SVGSVGElement;
-	let hoveredNode: GraphNode | null = $state(null);
 
 	function getMediaType(obj: MediaObject): MediaType {
-		if (obj.properties.audioMetadata) return 'audio';
-		if (obj.properties.imageMetadata) return 'image';
-		if (obj.properties.videoMetadata) return 'video';
+		const props = obj.properties;
+		if ('audioMetadata' in props) return 'audio';
+		if ('imageMetadata' in props) return 'image';
+		if ('videoMetadata' in props) return 'video';
 		return 'text';
 	}
 
-	// Enhanced color palette with gradients
-	function getGradientId(type: MediaType): string {
-		return `gradient-${type}`;
+	function getFieldValue(field: WeaviateField): string {
+		if (field === null || field === undefined) return '';
+
+		// Handle primitive types
+		if (typeof field === 'string' || typeof field === 'number' || typeof field === 'boolean') {
+			return String(field);
+		}
+
+		// Handle array types
+		if (Array.isArray(field)) {
+			return field.map(String).join(', ');
+		}
+
+		// Handle object types (like nested fields)
+		if (typeof field === 'object') {
+			// Try to get a string representation of the object
+			try {
+				const stringValue = JSON.stringify(field);
+				return stringValue === '{}' ? '' : stringValue;
+			} catch {
+				return '';
+			}
+		}
+
+		return '';
 	}
 
 	function createGraph() {
 		if (!data?.visualization?.objects || !svg) return;
 
-		const objects = data.visualization.objects as MediaObject[];
 		const width = 800;
 		const height = 600;
+		const radius = 6;
 
-		// Prepare nodes and links
-		const nodes: GraphNode[] = objects.map((obj) => ({
-			id: obj.uuid,
-			label: obj.properties.title,
-			type: getMediaType(obj),
-			x: undefined,
-			y: undefined,
-			fx: null,
-			fy: null,
-			weight: 0
-		}));
+		// Prepare nodes and links as before...
+		const nodes: GraphNode[] = data.visualization.objects.map((obj) => {
+			const titleField = obj.properties['title'];
+			const label = titleField ? getFieldValue(titleField) : 'Untitled';
 
-		const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-		const links: GraphLink[] = data.visualization.relations.map((relation) => {
-			const source = nodeMap.get(relation.source)!;
-			const target = nodeMap.get(relation.target)!;
-			const strength = 1 - relation.distance;
-			source.weight += strength;
-			target.weight += strength;
-			return { source, target, strength };
+			return {
+				id: obj.uuid,
+				label,
+				type: getMediaType(obj),
+				weight: 0,
+				x: width / 2 + Math.random() * 50,
+				y: height / 2 + Math.random() * 50
+			};
 		});
 
-		// Setup SVG
-		const svgSelection = d3
+		const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+		const links: GraphLink[] = data.visualization.relations
+			.map((rel) => {
+				const source = nodeMap.get(rel.source);
+				const target = nodeMap.get(rel.target);
+				if (!source || !target) return null;
+				return { source, target, strength: 1 - rel.distance };
+			})
+			.filter((link): link is GraphLink => link !== null);
+
+		// Setup SVG with zoom support
+		const svg_container = d3
 			.select<SVGSVGElement, unknown>(svg)
 			.attr('viewBox', `0 0 ${width} ${height}`)
 			.html('');
 
-		// Create gradients
-		const defs = svgSelection.append('defs');
-
-		// Define gradients for each type
-		const gradients = {
-			audio: { start: '#ff7675', end: '#d63031' },
-			image: { start: '#74b9ff', end: '#0984e3' },
-			video: { start: '#55efc4', end: '#00b894' },
-			text: { start: '#ffeaa7', end: '#fdcb6e' }
-		};
-
-		Object.entries(gradients).forEach(([type, colors]) => {
-			const gradient = defs
-				.append('radialGradient')
-				.attr('id', getGradientId(type as MediaType))
-				.attr('cx', '50%')
-				.attr('cy', '50%')
-				.attr('r', '50%');
-
-			gradient.append('stop').attr('offset', '0%').attr('stop-color', colors.start);
-			gradient.append('stop').attr('offset', '100%').attr('stop-color', colors.end);
-		});
-
-		// Add zoom with smooth transitions
+		// Create zoom behavior
 		const zoom = d3
 			.zoom<SVGSVGElement, unknown>()
-			.scaleExtent([0.2, 2])
+			.scaleExtent([0.2, 4]) // Set min/max zoom scale
 			.on('zoom', (event) => {
-				container.attr('transform', event.transform);
+				g.attr('transform', event.transform);
 			});
 
-		svgSelection.call(zoom);
-		const container = svgSelection.append('g');
+		// Add zoom behavior to SVG
+		svg_container.call(zoom);
 
-		// Setup force simulation with adjusted forces
+		// Create main group for all elements
+		const g = svg_container.append('g');
+
+		// Add double-click to reset zoom
+		svg_container.on('dblclick.zoom', () => {
+			svg_container.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+		});
+
+		// Draw links with enhanced styling
+		const link = g
+			.append('g')
+			.attr('stroke', '#666')
+			.attr('stroke-opacity', 0.6)
+			.selectAll('line')
+			.data(links)
+			.join('line')
+			.attr('stroke-width', (d) => Math.sqrt(d.strength) * 2);
+
+		// Draw nodes with interaction
+		const node = g
+			.append('g')
+			.selectAll('g')
+			.data(nodes)
+			.join('g')
+			.call(
+				d3
+					.drag<any, GraphNode>()
+					.on('start', (event, d) => {
+						if (!event.active) simulation.alphaTarget(0.3).restart();
+						d.fx = event.x;
+						d.fy = event.y;
+					})
+					.on('drag', (event, d) => {
+						d.fx = event.x;
+						d.fy = event.y;
+					})
+					.on('end', (event, d) => {
+						if (!event.active) simulation.alphaTarget(0);
+						d.fx = null;
+						d.fy = null;
+					})
+			);
+
+		// Add circles with hover effects
+		node
+			.append('circle')
+			.attr('r', radius)
+			.attr('fill', (d) => colors[d.type])
+			.attr('stroke', '#fff')
+			.attr('stroke-width', 1.5)
+			.on('mouseover', function (event, d) {
+				d3.select(this)
+					.transition()
+					.duration(200)
+					.attr('r', radius * 1.5)
+					.attr('stroke-width', 2);
+
+				// Highlight connected nodes
+				const connectedNodes = links
+					.filter((l) => l.source.id === d.id || l.target.id === d.id)
+					.flatMap((l) => [l.source.id, l.target.id]);
+
+				node
+					.selectAll('circle')
+					.filter((n: any) => connectedNodes.includes(n.id))
+					.transition()
+					.duration(200)
+					.attr('stroke', '#ffd700')
+					.attr('stroke-width', 2);
+
+				// Highlight connected links
+				link
+					.filter((l) => l.source.id === d.id || l.target.id === d.id)
+					.transition()
+					.duration(200)
+					.attr('stroke', '#ffd700')
+					.attr('stroke-width', (d) => Math.sqrt(d.strength) * 3);
+			})
+			.on('mouseout', function (event, d) {
+				d3.select(this).transition().duration(200).attr('r', radius).attr('stroke-width', 1.5);
+
+				// Reset highlights
+				node
+					.selectAll('circle')
+					.transition()
+					.duration(200)
+					.attr('stroke', '#fff')
+					.attr('stroke-width', 1.5);
+
+				link
+					.transition()
+					.duration(200)
+					.attr('stroke', '#666')
+					.attr('stroke-width', (d) => Math.sqrt(d.strength) * 2);
+			});
+
+		// Add labels with better visibility
+		node
+			.append('text')
+			.attr('x', radius + 4)
+			.attr('y', '0.31em')
+			.text((d) => d.label)
+			.clone(true)
+			.lower()
+			.attr('fill', 'none')
+			.attr('stroke', 'white')
+			.attr('stroke-width', 3);
+
+		// Optimized force simulation with adjusted parameters
 		const simulation = d3
-			.forceSimulation<GraphNode>(nodes)
+			.forceSimulation(nodes)
 			.force(
 				'link',
 				d3
 					.forceLink<GraphNode, GraphLink>(links)
 					.id((d) => d.id)
-					// Stronger pull for closer nodes
-					.strength((d) => Math.pow(d.strength, 0.5) * 1.5)
-					// Longer distance for weaker connections
-					.distance((d) => 100 * (1 - d.strength))
+					.distance((d) => 50 + 50 * (1 - d.strength)) // Reduced base distance
+					.strength((d) => 0.5 + d.strength * 0.5) // Stronger links
 			)
-			// Stronger repulsion
-			.force('charge', d3.forceManyBody().strength(-1000))
-			.force('center', d3.forceCenter(width / 2, height / 2))
-			// Adjusted collision radius based on node weight
+			.force(
+				'charge',
+				d3
+					.forceManyBody()
+					.strength(-300) // Reduced repulsion
+					.distanceMax(200) // Limit repulsion range
+			)
+			.force(
+				'center',
+				d3.forceCenter(width / 2, height / 2).strength(0.3) // Added strength to center force
+			)
 			.force(
 				'collision',
-				d3.forceCollide<GraphNode>().radius((d) => 25 + d.weight * 10)
-			);
+				d3
+					.forceCollide()
+					.radius(radius * 2)
+					.strength(0.8) // Increased collision strength
+			)
+			// Add x and y forces to prevent extreme spreading
+			.force('x', d3.forceX(width / 2).strength(0.05))
+			.force('y', d3.forceY(height / 2).strength(0.05));
 
-		// Enhanced link styling with stronger visual feedback
-		const link = container
-			.append('g')
-			.selectAll('line')
-			.data(links)
-			.join('line')
-			.attr('stroke', '#2d3436')
-			// More pronounced opacity difference
-			.attr('stroke-opacity', (d) => 0.1 + d.strength * 0.9)
-			// Exponential width scaling for stronger visual impact
-			.attr('stroke-width', (d) => Math.pow(d.strength * 5, 1.5))
-			// Add glow effect for strong connections
-			.style('filter', (d) =>
-				d.strength > 0.7 ? 'drop-shadow(0 0 3px rgba(255,255,255,0.3))' : 'none'
-			);
+		// Initial positioning in a smaller area
+		nodes.forEach((node, i) => {
+			const angle = (i / nodes.length) * 2 * Math.PI;
+			const radius = Math.min(width, height) / 4; // Smaller initial radius
+			node.x = width / 2 + radius * Math.cos(angle);
+			node.y = height / 2 + radius * Math.sin(angle);
+		});
 
-		// Node styling with weight-based sizing
-		const node = container.append('g').selectAll('g').data(nodes).join('g');
-
-		// Add drag behavior
-		node.call(
-			d3
-				.drag<SVGGElement, GraphNode>()
-				.on('start', (event, d) => {
-					if (!event.active) simulation.alphaTarget(0.3).restart();
-					d.fx = event.x;
-					d.fy = event.y;
-				})
-				.on('drag', (event, d) => {
-					d.fx = event.x;
-					d.fy = event.y;
-				})
-				.on('end', (event, d) => {
-					if (!event.active) simulation.alphaTarget(0);
-					d.fx = null;
-					d.fy = null;
-				}) as any
+		// Adjust initial zoom to show all nodes
+		const initialScale = 0.8;
+		svg_container.call(
+			zoom.transform,
+			d3.zoomIdentity
+				.translate(width / 2, height / 2)
+				.scale(initialScale)
+				.translate(-width / 2, -height / 2)
 		);
 
-		// Adjusted node circles with size based on weight
-		node
-			.append('circle')
-			.attr('r', (d) => 20 + Math.sqrt(d.weight) * 5)
-			.style('fill', (d) => `url(#${getGradientId(d.type)})`)
-			.style('stroke', '#2d3436')
-			.style('stroke-width', 2)
-			.style('filter', 'drop-shadow(0 0 3px rgba(0,0,0,0.3))');
-
-		// Adjusted label positioning based on node size
-		node
-			.append('text')
-			.text((d) => d.label)
-			.attr('text-anchor', 'middle')
-			.attr('dy', (d) => 25 + Math.sqrt(d.weight) * 5)
-			.attr('fill', 'white')
-			.style('font-size', '12px')
-			.style('font-weight', '500')
-			.style('text-shadow', '0 1px 2px rgba(0,0,0,0.5)');
-
-		// Enhanced hover effects
-		node
-			.on('mouseover', (event, d) => {
-				hoveredNode = d;
-				// Highlight connected nodes and links
-				const connectedNodes = new Set(
-					links
-						.filter((l) => l.source.id === d.id || l.target.id === d.id)
-						.flatMap((l) => [l.source.id, l.target.id])
-				);
-
-				node.style('opacity', (n) => (connectedNodes.has(n.id) || n.id === d.id ? 1 : 0.3));
-				link
-					.style('opacity', (l) => (l.source.id === d.id || l.target.id === d.id ? 1 : 0.1))
-					.style('stroke-width', (l) => {
-						if (l.source.id === d.id || l.target.id === d.id) {
-							return Math.pow(l.strength * 6, 1.5);
-						}
-						return Math.pow(l.strength * 5, 1.5);
-					});
-
-				d3.select(event.currentTarget).style(
-					'filter',
-					'drop-shadow(0 0 6px rgba(255,255,255,0.3))'
-				);
-			})
-			.on('mouseout', (event) => {
-				hoveredNode = null;
-				// Reset highlights
-				node.style('opacity', 1);
-				link.style('opacity', 1).style('stroke-width', (d) => Math.pow(d.strength * 5, 1.5));
-				d3.select(event.currentTarget).style('filter', 'drop-shadow(0 0 3px rgba(0,0,0,0.3))');
-			});
-
-		// Update positions
 		simulation.on('tick', () => {
 			link
-				.attr('x1', (d) => d.source.x ?? 0)
-				.attr('y1', (d) => d.source.y ?? 0)
-				.attr('x2', (d) => d.target.x ?? 0)
-				.attr('y2', (d) => d.target.y ?? 0);
+				.attr('x1', (d) => d.source.x!)
+				.attr('y1', (d) => d.source.y!)
+				.attr('x2', (d) => d.target.x!)
+				.attr('y2', (d) => d.target.y!);
 
-			node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`);
+			node.attr('transform', (d) => `translate(${d.x},${d.y})`);
 		});
 	}
 
-	onMount(() => {
-		createGraph();
-	});
+	const colors: Record<MediaType, string> = {
+		audio: '#ff7675',
+		image: '#74b9ff',
+		video: '#55efc4',
+		text: '#ffeaa7'
+	};
+
+	onMount(() => createGraph());
 </script>
 
-<div class="relative flex h-full w-full flex-col items-center justify-center p-4">
+<div class="relative h-full w-full">
+	<div class="absolute bottom-4 right-4 rounded bg-background/80 p-2 text-sm backdrop-blur">
+		<p>Mouse wheel to zoom</p>
+		<p>Drag to pan</p>
+		<p>Double-click to reset</p>
+		<p>Hover nodes to highlight connections</p>
+	</div>
 	<svg
 		bind:this={svg}
-		class="h-full max-h-[600px] w-full max-w-4xl rounded-lg border border-border bg-[#111]"
+		class="h-full w-full rounded-lg border border-border bg-[#111]"
+		style="min-height: 600px"
 	/>
-	{#if hoveredNode}
-		<div
-			class="absolute bottom-6 right-6 rounded-lg bg-background/90 p-4 shadow-lg backdrop-blur transition-all"
-		>
-			<h3 class="font-bold">{hoveredNode.label}</h3>
-			<p class="text-sm opacity-80">Type: {hoveredNode.type}</p>
-			<p class="text-sm opacity-80">Connections: {hoveredNode.weight.toFixed(2)}</p>
-		</div>
-	{/if}
 </div>

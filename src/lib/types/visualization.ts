@@ -1,9 +1,14 @@
 import type { SimulationNodeDatum } from 'd3';
-import type { WeaviateObject } from 'weaviate-client';
+import type { WeaviateObject, WeaviateField } from 'weaviate-client';
 
 export type MediaType = 'audio' | 'image' | 'text' | 'video';
 
-// Define the properties structure that matches our Weaviate schema
+// Define Weaviate's field types
+export interface WeaviateProperties {
+	[key: string]: WeaviateField;
+}
+
+// Define our expected property structure
 export interface ObjectProperties {
 	title: string;
 	audioMetadata?: {
@@ -25,23 +30,14 @@ export interface ObjectProperties {
 	text?: string;
 }
 
-// Use WeaviateObject with our properties type
-export type MediaObject = WeaviateObject<ObjectProperties>;
+export type MediaObject = WeaviateObject<WeaviateProperties>;
 
-// Custom node data interface
-export interface NodeData {
+// D3 Graph types
+export interface GraphNode extends SimulationNodeDatum {
 	id: string;
 	label: string;
 	type: MediaType;
 	weight: number;
-}
-
-// D3 Graph types - combine SimulationNodeDatum with our custom data
-export interface GraphNode extends NodeData, Omit<SimulationNodeDatum, keyof NodeData> {
-	x?: number;
-	y?: number;
-	fx?: number | null;
-	fy?: number | null;
 }
 
 export interface GraphLink {
@@ -49,6 +45,3 @@ export interface GraphLink {
 	target: GraphNode;
 	strength: number;
 }
-
-// Add type for D3 selections
-export type D3Selection = d3.Selection<d3.BaseType, unknown, null, undefined>;
