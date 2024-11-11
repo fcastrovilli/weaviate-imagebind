@@ -54,6 +54,13 @@ export async function createCollection({ name, description, mediaTypes }: Create
 				description: 'Title of the content',
 				indexFilterable: true,
 				indexSearchable: true
+			},
+			{
+				name: 'createdAt',
+				dataType: 'date',
+				description: 'Creation date of the content',
+				indexFilterable: true,
+				indexSearchable: false
 			}
 		];
 

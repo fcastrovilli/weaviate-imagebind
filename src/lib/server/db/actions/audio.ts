@@ -59,7 +59,8 @@ export const uploadAudiosAction: Action = async ({ request }) => {
 				audio: await audioBlob
 					.arrayBuffer()
 					.then((buffer) => Buffer.from(buffer).toString('base64')),
-				audioMetadata
+				audioMetadata,
+				createdAt: new Date().toISOString()
 			};
 		})
 	);

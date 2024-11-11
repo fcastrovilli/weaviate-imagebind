@@ -22,7 +22,7 @@ export const getImages = async (collection_name: string) => {
 	);
 
 	const result = await collection.query.fetchObjects({
-		returnProperties: ['title', 'image'],
+		returnProperties: ['title', 'image', 'createdAt'],
 		filters: filters,
 		limit: 100
 	});
@@ -41,6 +41,7 @@ export const uploadImages = async (
 			format: string;
 			size: number;
 		};
+		createdAt: string;
 	}[]
 ) => {
 	const collection = await getCollection(collection_name);

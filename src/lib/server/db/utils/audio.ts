@@ -34,7 +34,7 @@ export const getAudios = async (collection_name: string) => {
 	);
 
 	const result = await collection.query.fetchObjects({
-		returnProperties: ['title', 'audio'],
+		returnProperties: ['title', 'audio', 'createdAt'],
 		filters: filters,
 		limit: 100
 	});
@@ -52,6 +52,7 @@ export const uploadAudio = async (
 			format: string;
 			size: number;
 		};
+		createdAt: string;
 	}[]
 ) => {
 	const collection = await getCollection(collection_name);
