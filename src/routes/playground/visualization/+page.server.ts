@@ -1,11 +1,5 @@
 import { getCollection } from '$lib/server/db/collections';
-
-interface Relation {
-	source: string;
-	target: string;
-	distance: number;
-	key: string;
-}
+import type { Relation } from '$lib/types/visualization';
 
 export const load = async ({ cookies, depends }) => {
 	depends('app:collection');

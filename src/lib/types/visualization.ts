@@ -3,6 +3,13 @@ import type { WeaviateObject, WeaviateField } from 'weaviate-client';
 
 export type MediaType = 'audio' | 'image' | 'text' | 'video';
 
+export interface Relation {
+	source: string;
+	target: string;
+	distance: number;
+	key: string;
+}
+
 // Define Weaviate's field types
 export interface WeaviateProperties {
 	[key: string]: WeaviateField;
