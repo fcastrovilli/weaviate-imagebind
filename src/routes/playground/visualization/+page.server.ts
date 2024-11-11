@@ -1,5 +1,45 @@
 import { getCollection } from '$lib/server/db/collections';
-import type { Relation } from '$lib/types/visualization';
+import type { MediaType, Relation } from '$lib/types/visualization';
+import { fail } from '@sveltejs/kit';
+
+// Server action to fetch media data on demand
+export const actions = {
+	getMediaData: async ({ request }) => {
+		const data = await request.formData();
+		const uuid = data.get('uuid')?.toString();
+		const mediaType = data.get('mediaType')?.toString();
+		const collectionName = data.get('collection')?.toString();
+
+		if (!uuid || !mediaType || !collectionName) {
+			return fail(400, { error: 'Missing required parameters' });
+		}
+
+		const collection = await getCollection(collectionName);
+		if (!collection) {
+			return fail(404, { error: 'Collection not found' });
+		}
+
+		// Map media type to actual property name
+		const propertyMap: Record<MediaType, string> = {
+			image: 'image',
+			audio: 'audio',
+			video: 'video',
+			text: 'text'
+		};
+
+		const propertyName = propertyMap[mediaType as MediaType];
+
+		const result = await collection.query.fetchObjectById(uuid, {
+			returnProperties: [propertyName]
+		});
+
+		if (!result) {
+			return fail(404, { error: 'Object not found' });
+		}
+
+		return { success: true, mediaData: result.properties[propertyName] };
+	}
+};
 
 export const load = async ({ cookies, depends }) => {
 	depends('app:collection');
@@ -15,30 +55,53 @@ export const load = async ({ cookies, depends }) => {
 	// Extract available media properties from schema
 	const properties = schema.properties?.map((prop) => prop.name) || [];
 
-	// For now, let's only request the basic properties without metadata
-	const requiredProps = ['title'];
-
-	// Add only media content properties, skip metadata for now
-	if (properties.includes('image')) {
-		requiredProps.push('image');
-	}
-	if (properties.includes('audio')) {
-		requiredProps.push('audio');
-	}
-	if (properties.includes('video')) {
-		requiredProps.push('video');
-	}
-	if (properties.includes('text')) {
-		requiredProps.push('text');
-	}
-
-	// Get initial objects with only available properties
+	// Initially only get titles for the graph structure
+	const initialProps = ['title'];
 	const allObjects = await collection.query.fetchObjects({
 		limit: 100,
-		returnProperties: requiredProps
+		returnProperties: initialProps
 	});
 
 	if (!allObjects.objects.length) return { visualization: null };
+
+	// Get media type indicators in a separate, lighter query
+	const mediaTypes = new Map<string, MediaType>();
+
+	// Batch process objects to check media types
+	const batchSize = 10;
+	for (let i = 0; i < allObjects.objects.length; i += batchSize) {
+		const batch = allObjects.objects.slice(i, i + batchSize);
+		const batchQueries = batch.map((obj) =>
+			collection.query.fetchObjectById(obj.uuid, {
+				returnProperties: ['title'].concat(
+					properties.filter((p) => ['image', 'audio', 'video', 'text'].includes(p))
+				)
+			})
+		);
+
+		const results = await Promise.all(batchQueries);
+
+		results.forEach((result) => {
+			if (!result) return;
+			const obj = result;
+			if (obj.properties['image'] !== undefined) mediaTypes.set(obj.uuid, 'image');
+			else if (obj.properties['audio'] !== undefined) mediaTypes.set(obj.uuid, 'audio');
+			else if (obj.properties['video'] !== undefined) mediaTypes.set(obj.uuid, 'video');
+			else if (obj.properties['text'] !== undefined) mediaTypes.set(obj.uuid, 'text');
+			else {
+				const title = obj.properties['title']?.toString().toLowerCase() || '';
+				if (title.includes('image')) mediaTypes.set(obj.uuid, 'image');
+				else if (title.includes('audio')) mediaTypes.set(obj.uuid, 'audio');
+				else if (title.includes('video')) mediaTypes.set(obj.uuid, 'video');
+				else mediaTypes.set(obj.uuid, 'text');
+			}
+		});
+	}
+
+	// Attach media types to objects
+	allObjects.objects.forEach((obj) => {
+		obj.properties.mediaType = mediaTypes.get(obj.uuid) || 'text';
+	});
 
 	const relations: Relation[] = [];
 	const seen = new Set<string>();
@@ -71,7 +134,7 @@ export const load = async ({ cookies, depends }) => {
 	for (const obj of allObjects.objects) {
 		const similar = await collection.query.nearObject(obj.uuid, {
 			returnMetadata: ['distance'],
-			returnProperties: requiredProps,
+			returnProperties: initialProps, // Use the same properties as initial fetch
 			limit: 5,
 			certainty: 0.1
 		});
@@ -101,7 +164,8 @@ export const load = async ({ cookies, depends }) => {
 	return {
 		visualization: {
 			objects: allObjects.objects,
-			relations: sortedRelations
+			relations: sortedRelations,
+			availableMedia: properties.filter((p) => ['image', 'audio', 'video', 'text'].includes(p))
 		}
 	};
 };

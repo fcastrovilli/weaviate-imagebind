@@ -23,21 +23,23 @@ export const COLORS: Record<MediaType, string> = {
 };
 
 export function getMediaType(obj: MediaObject): MediaType {
-	// Check for actual media data presence
-	if ('image' in obj.properties && obj.properties['image']) {
-		return 'image';
-	}
-	if ('audio' in obj.properties && obj.properties['audio']) {
-		return 'audio';
-	}
-	if ('video' in obj.properties && obj.properties['video']) {
-		return 'video';
-	}
-	if ('text' in obj.properties && obj.properties['text']) {
-		return 'text';
+	// Use pre-determined media type if available
+	if ('mediaType' in obj.properties) {
+		return obj.properties.mediaType as MediaType;
 	}
 
-	// Default to text if no media type is found
+	// Fallback to checking properties
+	if ('image' in obj.properties) return 'image';
+	if ('audio' in obj.properties) return 'audio';
+	if ('video' in obj.properties) return 'video';
+	if ('text' in obj.properties) return 'text';
+
+	// Final fallback to title-based detection
+	const title = obj.properties['title']?.toString().toLowerCase() || '';
+	if (title.includes('image')) return 'image';
+	if (title.includes('audio')) return 'audio';
+	if (title.includes('video')) return 'video';
+
 	return 'text';
 }
 
