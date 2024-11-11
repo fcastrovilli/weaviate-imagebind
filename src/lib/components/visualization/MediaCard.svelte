@@ -2,6 +2,8 @@
 	import type { MediaObject, MediaType } from '$lib/types/visualization';
 	import * as Card from '$lib/components/ui/card';
 	import { fade } from 'svelte/transition';
+	import { mediaCache } from '$lib/utils/cache';
+	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
 
 	interface Position {
@@ -24,27 +26,42 @@
 
 	let mediaData: string | null = $state(null);
 	let isLoading = $state(false);
-
-	let getMediaForm: HTMLFormElement | undefined = $state();
 	let currentUuid: string = $state(mediaObject.uuid);
+	let getMediaForm: HTMLFormElement | undefined = $state();
 
-	// Reset media data when uuid changes
-	$effect(() => {
-		if (!mediaObject) {
-			console.warn('MediaCard received null mediaObject');
+	async function loadMediaData() {
+		if (!mediaObject || type === 'text' || isLoading) return;
+
+		const cacheKey = `${mediaObject.uuid}-${type}`;
+
+		// First check cache
+		if (browser && mediaCache.has(cacheKey)) {
+			mediaData = mediaCache.get(cacheKey) || null;
 			return;
 		}
-		if (currentUuid !== mediaObject.uuid) {
-			mediaData = null;
-			currentUuid = mediaObject.uuid;
-		}
-	});
 
-	// Load media data when component mounts or uuid changes
+		// If not in cache, use form action
+		getMediaForm?.requestSubmit();
+	}
+
+	// Initial load and UUID changes
 	$effect(() => {
-		if (!mediaObject) return;
-		if (type !== 'text' && !mediaData && !isLoading) {
-			getMediaForm?.requestSubmit();
+		// Skip if no media object or if it's text type
+		if (!mediaObject || type === 'text') return;
+
+		// If UUID changed
+		if (currentUuid !== mediaObject.uuid) {
+			// Reset states
+			mediaData = null;
+			isLoading = false;
+			currentUuid = mediaObject.uuid;
+
+			// Try to load from cache or trigger form
+			loadMediaData();
+		}
+		// If same node but no media data and not loading
+		else if (!mediaData && !isLoading) {
+			loadMediaData();
 		}
 	});
 
@@ -102,14 +119,20 @@
 				<form
 					bind:this={getMediaForm}
 					method="POST"
-					action="/playground/visualization?/getMediaData"
+					action="?/getMediaData"
 					use:enhance={() => {
 						isLoading = true;
-						const targetUuid = mediaObject?.uuid;
+						const targetUuid = mediaObject.uuid;
 
 						return async ({ result }) => {
 							if (result.type === 'success' && targetUuid === mediaObject?.uuid) {
-								mediaData = result.data?.mediaData as string | null;
+								const data = result.data?.mediaData as string;
+								// Store in cache
+								if (data) {
+									const cacheKey = `${targetUuid}-${type}`;
+									mediaCache.set(cacheKey, data);
+								}
+								mediaData = data;
 							}
 							isLoading = false;
 						};
@@ -123,7 +146,7 @@
 						value={document.cookie.match(/lastSelectedCollection=([^;]+)/)?.[1] || ''}
 					/>
 					<div class="flex h-32 items-center justify-center">
-						<span class="loading loading-spinner"> Loading media data... </span>
+						<span class="loading loading-spinner">Loading media data...</span>
 					</div>
 				</form>
 			{:else if type === 'image' && mediaData && currentUuid === mediaObject.uuid}
