@@ -25,10 +25,21 @@
 	}
 
 	function updatePreviews(fileList: FileList) {
-		previews = Array.from(fileList).map((file) => ({
+		const filesArray = Array.from(fileList).slice(0, 20);
+
+		const dataTransfer = new DataTransfer();
+		filesArray.forEach((file) => dataTransfer.items.add(file));
+		files = dataTransfer.files;
+		fileInput.files = dataTransfer.files;
+
+		previews = filesArray.map((file) => ({
 			name: file.name,
 			title: file.name.replace(/\.[^/.]+$/, '')
 		}));
+
+		if (fileList.length > 20) {
+			toast.error('Maximum 20 files allowed. Extra files were removed.');
+		}
 	}
 
 	function handleDrop(e: DragEvent) {
@@ -37,17 +48,14 @@
 		dragActive = false;
 
 		if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-			files = e.dataTransfer.files;
-			fileInput.files = e.dataTransfer.files;
-			updatePreviews(files);
+			updatePreviews(e.dataTransfer.files);
 		}
 	}
 
 	function handleChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (target.files) {
-			files = target.files;
-			updatePreviews(files);
+			updatePreviews(target.files);
 		}
 	}
 
@@ -144,7 +152,7 @@
 									>{fileCount} file{fileCount === 1 ? '' : 's'} selected</span
 								>
 							{:else}
-								Drag & drop audio files here or click to select
+								Drag & drop audio files here or click to select (max 20 files)
 							{/if}
 						</p>
 						<p class="text-xs text-muted-foreground">Supported formats: MP3, WAV, OGG</p>

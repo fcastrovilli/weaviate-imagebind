@@ -26,7 +26,7 @@
 	}
 
 	function updatePreviews(fileList: FileList) {
-		const filesArray = Array.from(fileList).slice(0, 10);
+		const filesArray = Array.from(fileList).slice(0, 20);
 
 		const dataTransfer = new DataTransfer();
 		filesArray.forEach((file) => dataTransfer.items.add(file));
@@ -39,8 +39,8 @@
 			title: file.name.replace(/\.[^/.]+$/, '')
 		}));
 
-		if (fileList.length > 10) {
-			toast.error('Maximum 10 files allowed. Extra files were removed.');
+		if (fileList.length > 20) {
+			toast.error('Maximum 20 files allowed. Extra files were removed.');
 		}
 	}
 
@@ -165,7 +165,7 @@
 									>{fileCount} file{fileCount === 1 ? '' : 's'} selected</span
 								>
 							{:else}
-								Drag & drop images here or click to select (max 10 files)
+								Drag & drop images here or click to select (max 20 files)
 							{/if}
 						</p>
 						<p class="text-xs text-muted-foreground">Supported formats: PNG, JPG, GIF, WEBP</p>
