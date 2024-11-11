@@ -3,6 +3,10 @@
 	import type { MediaObject, MediaType, GraphNode, GraphLink } from '$lib/types/visualization';
 	import { onMount } from 'svelte';
 
+	// Add width and height to outer scope
+	const width = 800;
+	const height = 600;
+
 	let { data } = $props();
 	let svg: SVGSVGElement;
 	let distanceThreshold = $state(0.35); // Initial threshold value
@@ -14,6 +18,10 @@
 
 	// Keep track of the simulation
 	let currentSimulation: d3.Simulation<GraphNode, GraphLink> | null = null;
+
+	// Store references to graph elements
+	let linkElements: d3.Selection<SVGLineElement, GraphLink, SVGGElement, unknown>;
+	let nodeElements: d3.Selection<SVGGElement, GraphNode, SVGGElement, unknown>;
 
 	function getMediaType(obj: MediaObject): MediaType {
 		if (obj.properties['audioMetadata'] !== undefined && obj.properties['audioMetadata'] !== null) {
@@ -35,44 +43,15 @@
 		text: '#FFDC00' // Yellow
 	};
 
-	function createGraph() {
+	function initializeGraph() {
 		if (!data?.visualization?.objects || !svg) return;
-
-		// Filter relations based on threshold
-		const filteredRelations = data.visualization.relations.filter((rel) => {
-			const isFiltered = rel.distance <= distanceThreshold;
-			return isFiltered;
-		});
-
-		const width = 800;
-		const height = 600;
-
-		// Create nodes
-		const nodes: GraphNode[] = data.visualization.objects.map((obj) => ({
-			id: obj.uuid,
-			label: String(obj.properties['title'] ?? ''),
-			type: getMediaType(obj),
-			weight: 0
-		}));
-
-		// Create links with filtered relations
-		const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-		const links: GraphLink[] = filteredRelations
-			.map((rel) => {
-				const source = nodeMap.get(rel.source);
-				const target = nodeMap.get(rel.target);
-				if (!source || !target) return null;
-				return { source, target, strength: 1 - rel.distance };
-			})
-			.filter((link): link is GraphLink => link !== null);
 
 		// Clear previous graph
 		d3.select(svg).html('');
 
-		// Setup SVG
-		const svg_container = d3.select(svg).attr('viewBox', `0 0 ${width} ${height}`).html('');
+		// Setup SVG and zoom
+		const svg_container = d3.select(svg).attr('viewBox', `0 0 ${width} ${height}`);
 
-		// Add zoom
 		const g = svg_container.append('g');
 		svg_container.call(
 			d3
@@ -85,21 +64,96 @@
 				.on('zoom', (event) => g.attr('transform', event.transform))
 		);
 
-		// Draw links
-		const link = g
-			.append('g')
-			.selectAll('line')
-			.data(links)
+		// Create initial nodes and links
+		const nodes: GraphNode[] = data.visualization.objects.map((obj) => ({
+			id: obj.uuid,
+			label: String(obj.properties['title'] ?? ''),
+			type: getMediaType(obj),
+			weight: 0
+		}));
+
+		// Initialize node positions
+		nodes.forEach((node, i) => {
+			const angle = (i / nodes.length) * 2 * Math.PI;
+			const radius = Math.min(width, height) / 4;
+			node.x = width / 2 + radius * Math.cos(angle);
+			node.y = height / 2 + radius * Math.sin(angle);
+		});
+
+		// Store elements for later updates
+		linkElements = g.append('g').selectAll('line');
+
+		nodeElements = g.append('g').selectAll('g');
+
+		// Create simulation
+		currentSimulation = d3
+			.forceSimulation<GraphNode>(nodes)
+			.force(
+				'link',
+				d3.forceLink<GraphNode, GraphLink>().id((d) => d.id)
+			)
+			.force('charge', d3.forceManyBody())
+			.force('center', d3.forceCenter(width / 2, height / 2))
+			.force('collision', d3.forceCollide());
+
+		// Set up tick handler
+		currentSimulation.on('tick', () => {
+			linkElements
+				.attr('x1', (d) => d.source.x!)
+				.attr('y1', (d) => d.source.y!)
+				.attr('x2', (d) => d.target.x!)
+				.attr('y2', (d) => d.target.y!);
+
+			nodeElements.attr('transform', (d) => `translate(${d.x},${d.y})`);
+		});
+
+		// Initial update
+		updateGraph();
+	}
+
+	function updateGraph() {
+		if (!currentSimulation || !data?.visualization) return;
+
+		// Filter relations based on threshold
+		const filteredRelations = data.visualization.relations.filter(
+			(rel) => rel.distance <= distanceThreshold
+		);
+
+		// Update links
+		const nodeMap = new Map(currentSimulation.nodes().map((node) => [node.id, node]));
+		const links: GraphLink[] = filteredRelations
+			.map((rel) => {
+				const source = nodeMap.get(rel.source);
+				const target = nodeMap.get(rel.target);
+				if (!source || !target) return null;
+				return { source, target, strength: 1 - rel.distance };
+			})
+			.filter((link): link is GraphLink => link !== null);
+
+		// Update visual elements
+		linkElements = linkElements
+			.data(links, (d: any) => d.source.id + '-' + d.target.id)
 			.join('line')
 			.attr('stroke', '#999')
 			.attr('stroke-width', 1);
 
-		// Draw nodes
-		const node = g
-			.append('g')
-			.selectAll('g')
-			.data(nodes)
-			.join('g')
+		nodeElements = nodeElements
+			.data(currentSimulation.nodes(), (d) => d.id)
+			.join((enter) => {
+				const g = enter.append('g');
+				g.append('circle')
+					.attr('r', 8)
+					.attr('fill', (d) => colors[d.type])
+					.attr('stroke', '#fff')
+					.attr('stroke-width', 1.5);
+				g.append('text')
+					.text((d) => d.label)
+					.attr('x', 10)
+					.attr('y', 3)
+					.attr('fill', '#fff')
+					.style('font-size', '12px');
+				return g;
+			})
 			.call(
 				d3
 					.drag<any, GraphNode>()
@@ -119,99 +173,31 @@
 					})
 			);
 
-		// Add circles
-		node
-			.append('circle')
-			.attr('r', 8)
-			.attr('fill', (d) => colors[d.type])
-			.attr('stroke', '#fff')
-			.attr('stroke-width', 1.5);
+		// Update force parameters
+		const linkForce = currentSimulation.force('link') as d3.ForceLink<GraphNode, GraphLink>;
+		linkForce
+			.links(links)
+			.distance((d) => linkDistance * (1 + d.strength))
+			.strength((d) => linkStrength * d.strength);
 
-		// Add labels
-		node
-			.append('text')
-			.text((d) => d.label)
-			.attr('x', 10)
-			.attr('y', 3)
-			.attr('fill', '#fff')
-			.style('font-size', '12px');
-
-		// If we have an existing simulation, stop it
-		if (currentSimulation) {
-			currentSimulation.stop();
-		}
-
-		// Create the simulation
-		currentSimulation = d3
-			.forceSimulation<GraphNode>(nodes)
-			.force(
-				'link',
-				d3
-					.forceLink<GraphNode, GraphLink>(links)
-					.id((d) => d.id)
-					.distance((d) => linkDistance * (1 + d.strength))
-					.strength((d) => linkStrength * d.strength)
-			)
-			.force('charge', d3.forceManyBody().strength(chargeStrength).distanceMax(300).theta(0.9))
+		currentSimulation
+			.force('charge', d3.forceManyBody().strength(chargeStrength).distanceMax(300))
 			.force('center', d3.forceCenter(width / 2, height / 2).strength(centerStrength))
-			.force('collision', d3.forceCollide().radius(20).strength(collisionStrength).iterations(3));
+			.force('collision', d3.forceCollide().radius(20).strength(collisionStrength));
 
-		// Update force parameters without recreating the simulation
-		$effect(() => {
-			const linkForce = currentSimulation?.force('link') as d3.ForceLink<GraphNode, GraphLink>;
-			if (linkForce) {
-				linkForce
-					.distance((d) => linkDistance * (1 + d.strength))
-					.strength((d) => linkStrength * d.strength);
-			}
-
-			const chargeForce = currentSimulation?.force('charge') as d3.ForceManyBody<GraphNode>;
-			if (chargeForce) {
-				chargeForce.strength(chargeStrength);
-			}
-
-			const centerForce = currentSimulation?.force('center') as d3.ForceCenter<GraphNode>;
-			if (centerForce) {
-				centerForce.strength(centerStrength);
-			}
-
-			const collisionForce = currentSimulation?.force('collision') as d3.ForceCollide<GraphNode>;
-			if (collisionForce) {
-				collisionForce.strength(collisionStrength);
-			}
-
-			// Gently reheat the simulation
-			currentSimulation?.alpha(0.3).restart();
-		});
-
-		// Initialize nodes in a more compact arrangement
-		nodes.forEach((node, i) => {
-			const angle = (i / nodes.length) * 2 * Math.PI;
-			const radius = Math.min(width, height) / 4; // Smaller initial radius
-			node.x = width / 2 + radius * Math.cos(angle);
-			node.y = height / 2 + radius * Math.sin(angle);
-		});
-
-		// Update positions
-		currentSimulation?.on('tick', () => {
-			link
-				.attr('x1', (d) => d.source.x!)
-				.attr('y1', (d) => d.source.y!)
-				.attr('x2', (d) => d.target.x!)
-				.attr('y2', (d) => d.target.y!);
-
-			node.attr('transform', (d) => `translate(${d.x},${d.y})`);
-		});
+		// Gently reheat
+		currentSimulation.alpha(0.3).restart();
 	}
 
-	// Only recreate graph when data or threshold changes
-	$effect(() => {
-		if (data?.visualization) {
-			createGraph();
-		}
+	// Initialize graph once
+	onMount(() => {
+		initializeGraph();
 	});
 
-	onMount(() => createGraph());
+	// Update when parameters change
+	$effect(() => {
+		updateGraph();
+	});
 </script>
 
 <div class="relative flex h-full w-full flex-col gap-4">
