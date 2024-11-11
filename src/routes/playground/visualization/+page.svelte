@@ -14,14 +14,9 @@
 		return 'text';
 	}
 
-	function getColor(type: MediaType): string {
-		const colors = {
-			audio: '#ff7675',
-			image: '#74b9ff',
-			video: '#55efc4',
-			text: '#ffeaa7'
-		};
-		return colors[type];
+	// Enhanced color palette with gradients
+	function getGradientId(type: MediaType): string {
+		return `gradient-${type}`;
 	}
 
 	function createGraph() {
@@ -31,6 +26,7 @@
 		const width = 800;
 		const height = 600;
 
+		// Prepare nodes and links
 		const nodes: GraphNode[] = objects.map((obj) => ({
 			id: obj.uuid,
 			label: obj.properties.title,
@@ -39,59 +35,60 @@
 			y: undefined,
 			fx: null,
 			fy: null,
-			weight: 0 // Initialize weight
+			weight: 0
 		}));
 
 		const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-
-		const links: GraphLink[] = objects.slice(1).map((obj) => {
-			const source = nodeMap.get(objects[0].uuid)!;
-			const target = nodeMap.get(obj.uuid)!;
-			const distance = (obj.metadata as { distance: number })?.distance ?? 0;
-			const strength = 1 - distance;
-
-			// Update node weights
+		const links: GraphLink[] = data.visualization.relations.map((relation) => {
+			const source = nodeMap.get(relation.source)!;
+			const target = nodeMap.get(relation.target)!;
+			const strength = 1 - relation.distance;
 			source.weight += strength;
 			target.weight += strength;
-
 			return { source, target, strength };
 		});
 
-		// Scale node sizes based on their weights
-		const sizeScale = d3
-			.scaleLinear()
-			.domain([0, d3.max(nodes, (d) => d.weight) ?? 1])
-			.range([10, 30]);
-
+		// Setup SVG
 		const svgSelection = d3
 			.select<SVGSVGElement, unknown>(svg)
 			.attr('viewBox', `0 0 ${width} ${height}`)
 			.html('');
 
-		// Add zoom behavior
-		const zoom = d3.zoom<SVGSVGElement, unknown>().on('zoom', (event) => {
-			container.attr('transform', event.transform);
+		// Create gradients
+		const defs = svgSelection.append('defs');
+
+		// Define gradients for each type
+		const gradients = {
+			audio: { start: '#ff7675', end: '#d63031' },
+			image: { start: '#74b9ff', end: '#0984e3' },
+			video: { start: '#55efc4', end: '#00b894' },
+			text: { start: '#ffeaa7', end: '#fdcb6e' }
+		};
+
+		Object.entries(gradients).forEach(([type, colors]) => {
+			const gradient = defs
+				.append('radialGradient')
+				.attr('id', getGradientId(type as MediaType))
+				.attr('cx', '50%')
+				.attr('cy', '50%')
+				.attr('r', '50%');
+
+			gradient.append('stop').attr('offset', '0%').attr('stop-color', colors.start);
+			gradient.append('stop').attr('offset', '100%').attr('stop-color', colors.end);
 		});
 
-		svgSelection.call(zoom);
+		// Add zoom with smooth transitions
+		const zoom = d3
+			.zoom<SVGSVGElement, unknown>()
+			.scaleExtent([0.2, 2])
+			.on('zoom', (event) => {
+				container.attr('transform', event.transform);
+			});
 
+		svgSelection.call(zoom);
 		const container = svgSelection.append('g');
 
-		// Create arrow marker for directed links
-		container
-			.append('defs')
-			.append('marker')
-			.attr('id', 'arrow')
-			.attr('viewBox', '0 -5 10 10')
-			.attr('refX', 20)
-			.attr('refY', 0)
-			.attr('markerWidth', 6)
-			.attr('markerHeight', 6)
-			.attr('orient', 'auto')
-			.append('path')
-			.attr('d', 'M0,-5L10,0L0,5')
-			.attr('fill', '#999');
-
+		// Setup force simulation with adjusted forces
 		const simulation = d3
 			.forceSimulation<GraphNode>(nodes)
 			.force(
@@ -99,68 +96,114 @@
 				d3
 					.forceLink<GraphNode, GraphLink>(links)
 					.id((d) => d.id)
-					.strength((d) => d.strength)
+					// Stronger pull for closer nodes
+					.strength((d) => Math.pow(d.strength, 0.5) * 1.5)
+					// Longer distance for weaker connections
+					.distance((d) => 100 * (1 - d.strength))
 			)
-			.force('charge', d3.forceManyBody().strength(-500))
+			// Stronger repulsion
+			.force('charge', d3.forceManyBody().strength(-1000))
 			.force('center', d3.forceCenter(width / 2, height / 2))
+			// Adjusted collision radius based on node weight
 			.force(
 				'collision',
-				d3.forceCollide<GraphNode>().radius((d) => sizeScale(d.weight) + 10)
+				d3.forceCollide<GraphNode>().radius((d) => 25 + d.weight * 10)
 			);
 
+		// Enhanced link styling with stronger visual feedback
 		const link = container
 			.append('g')
-			.selectAll<SVGLineElement, GraphLink>('line')
+			.selectAll('line')
 			.data(links)
 			.join('line')
-			.attr('stroke', '#999')
-			.attr('stroke-opacity', (d) => 0.2 + d.strength * 0.8)
-			.attr('stroke-width', (d) => 1 + d.strength * 3)
-			.attr('marker-end', 'url(#arrow)');
+			.attr('stroke', '#2d3436')
+			// More pronounced opacity difference
+			.attr('stroke-opacity', (d) => 0.1 + d.strength * 0.9)
+			// Exponential width scaling for stronger visual impact
+			.attr('stroke-width', (d) => Math.pow(d.strength * 5, 1.5))
+			// Add glow effect for strong connections
+			.style('filter', (d) =>
+				d.strength > 0.7 ? 'drop-shadow(0 0 3px rgba(255,255,255,0.3))' : 'none'
+			);
 
-		const node = container.append('g').selectAll<SVGGElement, GraphNode>('g').data(nodes).join('g');
+		// Node styling with weight-based sizing
+		const node = container.append('g').selectAll('g').data(nodes).join('g');
 
-		// Apply drag behavior with proper typing
-		const drag = d3
-			.drag<SVGGElement, GraphNode>()
-			.on('start', (event, d) => {
-				if (!event.active) simulation.alphaTarget(0.3).restart();
-				d.fx = event.x;
-				d.fy = event.y;
-			})
-			.on('drag', (event, d) => {
-				d.fx = event.x;
-				d.fy = event.y;
-			})
-			.on('end', (event, d) => {
-				if (!event.active) simulation.alphaTarget(0);
-				d.fx = null;
-				d.fy = null;
-			});
+		// Add drag behavior
+		node.call(
+			d3
+				.drag<SVGGElement, GraphNode>()
+				.on('start', (event, d) => {
+					if (!event.active) simulation.alphaTarget(0.3).restart();
+					d.fx = event.x;
+					d.fy = event.y;
+				})
+				.on('drag', (event, d) => {
+					d.fx = event.x;
+					d.fy = event.y;
+				})
+				.on('end', (event, d) => {
+					if (!event.active) simulation.alphaTarget(0);
+					d.fx = null;
+					d.fy = null;
+				}) as any
+		);
 
-		node
-			.call(drag as any) // Type assertion needed for D3's drag behavior
-			.on('mouseover', (_, d) => (hoveredNode = d))
-			.on('mouseout', () => (hoveredNode = null));
-
-		// Node circles with dynamic sizes
+		// Adjusted node circles with size based on weight
 		node
 			.append('circle')
-			.attr('r', (d) => sizeScale(d.weight))
-			.attr('fill', (d) => getColor(d.type))
-			.attr('stroke', '#fff')
-			.attr('stroke-width', 2);
+			.attr('r', (d) => 20 + Math.sqrt(d.weight) * 5)
+			.style('fill', (d) => `url(#${getGradientId(d.type)})`)
+			.style('stroke', '#2d3436')
+			.style('stroke-width', 2)
+			.style('filter', 'drop-shadow(0 0 3px rgba(0,0,0,0.3))');
 
-		// Node labels
+		// Adjusted label positioning based on node size
 		node
 			.append('text')
 			.text((d) => d.label)
 			.attr('text-anchor', 'middle')
-			.attr('dy', (d) => sizeScale(d.weight) + 15)
-			.attr('fill', '#fff')
-			.attr('font-size', '12px')
-			.attr('font-weight', 'bold');
+			.attr('dy', (d) => 25 + Math.sqrt(d.weight) * 5)
+			.attr('fill', 'white')
+			.style('font-size', '12px')
+			.style('font-weight', '500')
+			.style('text-shadow', '0 1px 2px rgba(0,0,0,0.5)');
 
+		// Enhanced hover effects
+		node
+			.on('mouseover', (event, d) => {
+				hoveredNode = d;
+				// Highlight connected nodes and links
+				const connectedNodes = new Set(
+					links
+						.filter((l) => l.source.id === d.id || l.target.id === d.id)
+						.flatMap((l) => [l.source.id, l.target.id])
+				);
+
+				node.style('opacity', (n) => (connectedNodes.has(n.id) || n.id === d.id ? 1 : 0.3));
+				link
+					.style('opacity', (l) => (l.source.id === d.id || l.target.id === d.id ? 1 : 0.1))
+					.style('stroke-width', (l) => {
+						if (l.source.id === d.id || l.target.id === d.id) {
+							return Math.pow(l.strength * 6, 1.5);
+						}
+						return Math.pow(l.strength * 5, 1.5);
+					});
+
+				d3.select(event.currentTarget).style(
+					'filter',
+					'drop-shadow(0 0 6px rgba(255,255,255,0.3))'
+				);
+			})
+			.on('mouseout', (event) => {
+				hoveredNode = null;
+				// Reset highlights
+				node.style('opacity', 1);
+				link.style('opacity', 1).style('stroke-width', (d) => Math.pow(d.strength * 5, 1.5));
+				d3.select(event.currentTarget).style('filter', 'drop-shadow(0 0 3px rgba(0,0,0,0.3))');
+			});
+
+		// Update positions
 		simulation.on('tick', () => {
 			link
 				.attr('x1', (d) => d.source.x ?? 0)
@@ -180,13 +223,15 @@
 <div class="relative flex h-full w-full flex-col items-center justify-center p-4">
 	<svg
 		bind:this={svg}
-		class="h-full max-h-[600px] w-full max-w-4xl rounded-lg border border-border bg-background"
+		class="h-full max-h-[600px] w-full max-w-4xl rounded-lg border border-border bg-[#111]"
 	/>
 	{#if hoveredNode}
-		<div class="absolute bottom-6 right-6 rounded-md bg-background/80 p-4 backdrop-blur">
+		<div
+			class="absolute bottom-6 right-6 rounded-lg bg-background/90 p-4 shadow-lg backdrop-blur transition-all"
+		>
 			<h3 class="font-bold">{hoveredNode.label}</h3>
-			<p class="text-sm">Type: {hoveredNode.type}</p>
-			<p class="text-sm">Connections: {hoveredNode.weight.toFixed(2)}</p>
+			<p class="text-sm opacity-80">Type: {hoveredNode.type}</p>
+			<p class="text-sm opacity-80">Connections: {hoveredNode.weight.toFixed(2)}</p>
 		</div>
 	{/if}
 </div>

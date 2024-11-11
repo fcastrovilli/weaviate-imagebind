@@ -28,16 +28,20 @@ export interface ObjectProperties {
 // Use WeaviateObject with our properties type
 export type MediaObject = WeaviateObject<ObjectProperties>;
 
-// D3 Graph types
-export interface GraphNode extends SimulationNodeDatum {
+// Custom node data interface
+export interface NodeData {
 	id: string;
 	label: string;
 	type: MediaType;
+	weight: number;
+}
+
+// D3 Graph types - combine SimulationNodeDatum with our custom data
+export interface GraphNode extends NodeData, Omit<SimulationNodeDatum, keyof NodeData> {
 	x?: number;
 	y?: number;
 	fx?: number | null;
 	fy?: number | null;
-	weight: number;
 }
 
 export interface GraphLink {
