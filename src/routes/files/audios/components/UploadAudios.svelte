@@ -7,6 +7,10 @@
 	import X from 'lucide-svelte/icons/x';
 	import { toast } from 'svelte-sonner';
 	import { activeCollection } from '$lib/stores';
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+
+	let currentTab: Writable<'table' | 'upload'> = getContext('currentTab');
 
 	let fileInput: HTMLInputElement;
 	let isUploading = $state(false);
@@ -110,6 +114,7 @@
 						isUploading = false;
 						clearFiles();
 						update();
+						$currentTab = 'table';
 					} else {
 						toast.error('Audio files upload failed');
 						isUploading = false;
@@ -161,38 +166,48 @@
 			</div>
 
 			{#if previews.length > 0}
-				<div class="grid gap-2">
-					{#each previews as preview}
-						<div class="group relative rounded-md border bg-muted p-3">
-							<button
-								type="button"
-								class="absolute -right-2 -top-2 z-10 hidden rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 group-hover:block"
-								onclick={() => removeFile(preview.name)}
-							>
-								<X class="h-3 w-3" />
-							</button>
-							<div class="space-y-2">
-								<p class="truncate text-xs text-muted-foreground" title={preview.name}>
-									File: {preview.name}
-								</p>
-								<div class="space-y-1.5">
-									<label for={`title-${preview.name}`} class="text-sm font-medium"> Title </label>
-									<input
-										id={`title-${preview.name}`}
-										type="text"
-										name="titles"
-										value={preview.title}
-										placeholder="Enter a title for this audio"
-										class="w-full rounded-sm border bg-transparent px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-										onchange={(e) =>
-											updateTitle(preview.name, (e.target as HTMLInputElement).value)}
-									/>
+				{#if isUploading}
+					<div class="grid gap-2" class:animate-pulse={isUploading}>
+						{#each previews as preview}
+							<div class="group relative rounded-md border bg-muted p-3">
+								<button
+									disabled={isUploading}
+									type="button"
+									class="absolute -right-2 -top-2 z-10 hidden rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 group-hover:block"
+									onclick={() => removeFile(preview.name)}
+								>
+									<X class="h-3 w-3" />
+								</button>
+								<div class="space-y-2">
+									<p class="truncate text-xs text-muted-foreground" title={preview.name}>
+										File: {preview.name}
+									</p>
+									<div class="space-y-1.5">
+										<label for={`title-${preview.name}`} class="text-sm font-medium"> Title </label>
+										<input
+											disabled={isUploading}
+											id={`title-${preview.name}`}
+											type="text"
+											name="titles"
+											value={preview.title}
+											placeholder="Enter a title for this audio"
+											class="w-full rounded-sm border bg-transparent px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+											onchange={(e) =>
+												updateTitle(preview.name, (e.target as HTMLInputElement).value)}
+										/>
+									</div>
 								</div>
 							</div>
-						</div>
-					{/each}
-				</div>
-				<Button type="button" variant="outline" class="w-full" onclick={() => clearFiles()}>
+						{/each}
+					</div>
+				{/if}
+				<Button
+					disabled={isUploading}
+					type="button"
+					variant="outline"
+					class="w-full"
+					onclick={() => clearFiles()}
+				>
 					<X class="mr-2 h-4 w-4" />
 					Clear Selection
 				</Button>

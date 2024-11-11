@@ -8,6 +8,10 @@
 	import { toast } from 'svelte-sonner';
 	import { onDestroy } from 'svelte';
 	import { activeCollection } from '$lib/stores';
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+
+	let currentTab: Writable<'table' | 'upload'> = getContext('currentTab');
 
 	let fileInput: HTMLInputElement;
 	let isUploading = $state(false);
@@ -123,6 +127,7 @@
 						isUploading = false;
 						clearFiles();
 						update();
+						$currentTab = 'table';
 					} else {
 						toast.error('Images upload failed');
 						isUploading = false;
@@ -174,10 +179,14 @@
 			</div>
 
 			{#if previews.length > 0}
-				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+				<div
+					class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"
+					class:animate-pulse={isUploading}
+				>
 					{#each previews as preview}
 						<div class="group relative rounded-md border bg-muted p-2">
 							<button
+								disabled={isUploading}
 								type="button"
 								class="absolute -right-2 -top-2 z-10 hidden rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 group-hover:block"
 								onclick={() => removeFile(preview.name)}
@@ -211,7 +220,13 @@
 						</div>
 					{/each}
 				</div>
-				<Button type="button" variant="outline" class="w-full" onclick={() => clearFiles()}>
+				<Button
+					disabled={previews.length === 0 || isUploading}
+					type="button"
+					variant="outline"
+					class="w-full"
+					onclick={() => clearFiles()}
+				>
 					<X class="mr-2 h-4 w-4" />
 					Clear Selection
 				</Button>

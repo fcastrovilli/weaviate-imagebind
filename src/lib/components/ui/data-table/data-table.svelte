@@ -35,7 +35,12 @@
 
 	// State
 	let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: 8 });
-	let sorting = $state<SortingState>([]);
+	let sorting = $state<SortingState>([
+		{
+			id: 'createdAt',
+			desc: true
+		}
+	]);
 	let columnFilters = $state<ColumnFiltersState>([]);
 	let columnVisibility = $state<VisibilityState>({
 		uuid: false,
