@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { MediaQuery } from 'runed';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
@@ -16,18 +17,26 @@
 	const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
 	// Convert route segments into proper breadcrumb items
-	let items: BreadcrumbItem[] = $derived(
-		($page.url.pathname.split('/').slice(1) ?? []).map((segment, index, array) => ({
-			href: '/' + (index === 0 ? segment : array.slice(0, index + 1).join('/')),
-			label: capitalize(segment || 'Home')
-		}))
-	);
-
+	let items: BreadcrumbItem[] = $state([]);
 	const ITEMS_TO_DISPLAY = 3;
 
-	let open = $state(false);
+	onMount(() => {
+		items = $page.url.pathname
+			.split('/')
+			.slice(1)
+			.map((segment, index, array) => ({
+				href: '/' + (index === 0 ? segment : array.slice(0, index + 1).join('/')),
+				label: capitalize(segment || 'Home')
+			}));
+	});
 
-	const isDesktop = new MediaQuery('(min-width: 768px)');
+	let open = $state(false);
+	let isDesktop = $state(false);
+
+	onMount(() => {
+		const mediaQuery = new MediaQuery('(min-width: 768px)');
+		isDesktop = mediaQuery.matches ?? false;
+	});
 </script>
 
 <Breadcrumb.Root>
@@ -41,7 +50,7 @@
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>
 				{#snippet children()}
-					{#if isDesktop.matches}
+					{#if isDesktop}
 						<DropdownMenu.Root bind:open>
 							<DropdownMenu.Trigger class="flex items-center gap-1" aria-label="Toggle menu">
 								{#snippet children()}
