@@ -40,48 +40,51 @@
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>
-				{#if isDesktop.matches}
-					<DropdownMenu.Root bind:open>
-						<DropdownMenu.Trigger class="flex items-center gap-1" aria-label="Toggle menu">
-							{#snippet children()}
-								<Breadcrumb.Ellipsis class="size-4" />
-							{/snippet}
-						</DropdownMenu.Trigger>
-						<DropdownMenu.Content align="start">
-							{#each items.slice(1, -2) as item}
-								<DropdownMenu.Item>
-									<a href={item.href ?? '#'}>{item.label}</a>
-								</DropdownMenu.Item>
-							{/each}
-						</DropdownMenu.Content>
-					</DropdownMenu.Root>
-				{:else}
-					<Drawer.Root bind:open>
-						<Drawer.Trigger aria-label="Toggle Menu">
-							{#snippet children()}
-								<Breadcrumb.Ellipsis class="size-4" />
-							{/snippet}
-						</Drawer.Trigger>
-						<Drawer.Content>
-							<Drawer.Header class="text-left">
-								<Drawer.Title>Navigate to</Drawer.Title>
-								<Drawer.Description>Select a page to navigate to.</Drawer.Description>
-							</Drawer.Header>
-							<div class="grid gap-1 px-4">
-								{#each items.slice(1, -2) as item}
-									<a href={item.href ?? '#'} class="py-1 text-sm">
-										{item.label}
-									</a>
-								{/each}
-							</div>
-							<Drawer.Footer class="pt-4">
+				{#snippet children()}
+					{#if isDesktop.matches}
+						<DropdownMenu.Root bind:open>
+							<DropdownMenu.Trigger class="flex items-center gap-1" aria-label="Toggle menu">
 								{#snippet children()}
-									<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close>
+									<Breadcrumb.Ellipsis class="size-4" />
 								{/snippet}
-							</Drawer.Footer>
-						</Drawer.Content>
-					</Drawer.Root>
-				{/if}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="start">
+								{#each items.slice(1, -2) as item}
+									<DropdownMenu.Item>
+										<a href={item.href ?? '#'}>{item.label}</a>
+									</DropdownMenu.Item>
+								{/each}
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					{:else}
+						<Drawer.Root bind:open>
+							<Drawer.Trigger aria-label="Toggle Menu">
+								{#snippet children()}
+									<Breadcrumb.Ellipsis class="size-4" />
+								{/snippet}
+							</Drawer.Trigger>
+							<Drawer.Content>
+								<Drawer.Header class="text-left">
+									<Drawer.Title>Navigate to</Drawer.Title>
+									<Drawer.Description>Select a page to navigate to.</Drawer.Description>
+								</Drawer.Header>
+								<div class="grid gap-1 px-4">
+									{#each items.slice(1, -2) as item}
+										<a href={item.href ?? '#'} class="py-1 text-sm">
+											{item.label}
+										</a>
+									{/each}
+								</div>
+								<Drawer.Footer class="pt-4">
+									{#snippet children()}
+										<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close
+										>
+									{/snippet}
+								</Drawer.Footer>
+							</Drawer.Content>
+						</Drawer.Root>
+					{/if}
+				{/snippet}
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 		{/if}

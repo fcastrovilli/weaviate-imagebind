@@ -19,6 +19,7 @@
 		"@tailwindcss/container-queries": "^0.1.1",
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
+		"@types/d3": "^7.4.3",
 		"@types/eslint": "^9.6.0",
 		"autoprefixer": "^10.4.20",
 		"bits-ui": "1.0.0-next.49",
@@ -50,6 +51,7 @@
 	},
 	"dependencies": {
 		"@tanstack/table-core": "^8.20.5",
+		"d3": "^7.9.0",
 		"fs": "0.0.1-security",
 		"jszip": "^3.10.1",
 		"runed": "^0.15.3",
