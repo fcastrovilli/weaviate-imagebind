@@ -1,5 +1,6 @@
 import { Filters } from 'weaviate-client';
 import { getCollection } from '../collections';
+import * as mm from 'music-metadata';
 
 export const AUDIO_MIME_TYPES: Record<string, string> = {
 	mp3: 'audio/mpeg',
@@ -13,7 +14,7 @@ export const getAudioExtension = (mimeType: string): string => {
 	return entry ? entry[0] : 'mp3'; // default to mp3 if unknown
 };
 
-export const getAudios = async (collection_name: string) => {
+export const getAudios = async (collection_name: string, return_audio: boolean = true) => {
 	const collection = await getCollection(collection_name);
 	if (!collection) {
 		return null;
@@ -32,8 +33,13 @@ export const getAudios = async (collection_name: string) => {
 			: [])
 	);
 
+	const returnProperties = ['title', 'createdAt'];
+	if (return_audio) {
+		returnProperties.push('audio');
+	}
+
 	const result = await collection.query.fetchObjects({
-		returnProperties: ['title', 'audio'],
+		returnProperties,
 		filters: filters,
 		limit: 100
 	});
@@ -51,6 +57,7 @@ export const uploadAudio = async (
 			format: string;
 			size: number;
 		};
+		createdAt: string;
 	}[]
 ) => {
 	const collection = await getCollection(collection_name);
@@ -58,7 +65,21 @@ export const uploadAudio = async (
 		return null;
 	}
 
-	const batch = await collection.data.insertMany(audios);
+	// Process each audio file to get correct duration
+	const processedAudios = await Promise.all(
+		audios.map(async (audio) => {
+			const audioData = await getAudioFileData(audio.audio, audio.audioMetadata.format);
+			return {
+				...audio,
+				audioMetadata: {
+					...audio.audioMetadata,
+					duration: audioData?.duration || 0
+				}
+			};
+		})
+	);
+
+	const batch = await collection.data.insertMany(processedAudios);
 	return batch;
 };
 
@@ -89,7 +110,7 @@ export const updateAudio = async (
 	return response;
 };
 
-export const getAudioFileData = (audioString: string, mimeType: string) => {
+export const getAudioFileData = async (audioString: string, mimeType: string) => {
 	try {
 		const fileContent = atob(audioString);
 		const arrayBuffer = new ArrayBuffer(fileContent.length);
@@ -99,10 +120,16 @@ export const getAudioFileData = (audioString: string, mimeType: string) => {
 			uint8Array[i] = fileContent.charCodeAt(i);
 		}
 
+		// Parse metadata using music-metadata
+		const metadata = await mm.parseBuffer(uint8Array, {
+			mimeType: mimeType || AUDIO_MIME_TYPES.mp3
+		});
+
 		return {
 			buffer: uint8Array,
 			extension: getAudioExtension(mimeType),
-			mimeType: mimeType || AUDIO_MIME_TYPES.mp3
+			mimeType: mimeType || AUDIO_MIME_TYPES.mp3,
+			duration: metadata.format.duration || 0
 		};
 	} catch (error) {
 		console.error('Error processing audio data:', error);

@@ -1,7 +1,7 @@
 import { Filters } from 'weaviate-client';
 import { getCollection } from '../collections';
 
-export const getImages = async (collection_name: string) => {
+export const getImages = async (collection_name: string, return_image: boolean = true) => {
 	const collection = await getCollection(collection_name);
 	if (!collection) {
 		return null;
@@ -21,8 +21,13 @@ export const getImages = async (collection_name: string) => {
 			: [])
 	);
 
+	const returnProperties = ['title', 'createdAt'];
+	if (return_image) {
+		returnProperties.push('image');
+	}
+
 	const result = await collection.query.fetchObjects({
-		returnProperties: ['title', 'image'],
+		returnProperties,
 		filters: filters,
 		limit: 100
 	});
@@ -41,6 +46,7 @@ export const uploadImages = async (
 			format: string;
 			size: number;
 		};
+		createdAt: string;
 	}[]
 ) => {
 	const collection = await getCollection(collection_name);

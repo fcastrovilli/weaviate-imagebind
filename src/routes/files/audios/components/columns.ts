@@ -6,6 +6,7 @@ import DataTableCheckbox from '$lib/components/ui/data-table/data-table-checkbox
 import AudioPreviewDialog from './audio-preview-dialog.svelte';
 import DataTableActions from '$lib/components/ui/data-table/data-table-actions.svelte';
 import DataTableTitleButton from '$lib/components/ui/data-table/data-table-title-button.svelte';
+import DataTableDateButton from '$lib/components/ui/data-table/data-table-date-button.svelte';
 
 export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 	{
@@ -17,13 +18,13 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 					: table.getIsSomePageRowsSelected()
 						? false
 						: undefined,
-				onCheckedChange: (value: boolean) => table.toggleAllPageRowsSelected(!!value),
+				onCheckedChange: (value) => table.toggleAllPageRowsSelected(!!value),
 				'aria-label': 'Select all'
 			}),
 		cell: ({ row }) =>
 			renderComponent(DataTableCheckbox, {
 				checked: row.getIsSelected(),
-				onCheckedChange: (value: boolean) => row.toggleSelected(!!value),
+				onCheckedChange: (value) => row.toggleSelected(!!value),
 				'aria-label': 'Select row'
 			}),
 		enableSorting: false,
@@ -80,12 +81,21 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 					uuid: row.original.uuid,
 					original: {
 						fileData: row.getValue<string>('audio'),
-						mimeType: 'audio/mp3'
+						mimeType: 'audio/mpeg'
 					}
 				}
 			});
 		},
 		enableSorting: false,
 		enableHiding: true
+	},
+	{
+		id: 'createdAt',
+		accessorFn: (row) => row.properties.createdAt as string,
+		header: ({ column }) => {
+			return renderComponent(DataTableDateButton, {
+				onclick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+			});
+		}
 	}
 ];

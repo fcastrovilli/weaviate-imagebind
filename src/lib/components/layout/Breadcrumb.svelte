@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { MediaQuery } from 'runed';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
@@ -6,46 +7,47 @@
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { page } from '$app/stores';
 
-	// Add type for breadcrumb items
 	type BreadcrumbItem = {
 		href?: string;
 		label: string;
 	};
 
-	// Function to capitalize first letter
 	const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
-	// Convert route segments into proper breadcrumb items
-	let items: BreadcrumbItem[] = $derived(
-		($page.url.pathname.split('/').slice(1) ?? []).map((segment, index, array) => ({
-			href: '/' + (index === 0 ? segment : array.slice(0, index + 1).join('/')),
-			label: capitalize(segment || 'Home')
-		}))
-	);
+	let items = $state<BreadcrumbItem[]>([]);
+	let open = $state(false);
+	let isDesktop = $state(false);
 
 	const ITEMS_TO_DISPLAY = 3;
 
-	let open = $state(false);
+	$effect(() => {
+		items = $page.url.pathname
+			.split('/')
+			.slice(1)
+			.map((segment, index, array) => ({
+				href: '/' + (index === 0 ? segment : array.slice(0, index + 1).join('/')),
+				label: capitalize(segment || 'Home')
+			}));
+	});
 
-	const isDesktop = new MediaQuery('(min-width: 768px)');
+	onMount(() => {
+		const mediaQuery = new MediaQuery('(min-width: 768px)');
+		isDesktop = mediaQuery.matches ?? false;
+	});
 </script>
 
 <Breadcrumb.Root>
 	<Breadcrumb.List>
 		{#if items.length > ITEMS_TO_DISPLAY}
 			<Breadcrumb.Item>
-				{#snippet children()}
-					<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
-				{/snippet}
+				<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Item>
-				{#if isDesktop.matches}
+				{#if isDesktop}
 					<DropdownMenu.Root bind:open>
 						<DropdownMenu.Trigger class="flex items-center gap-1" aria-label="Toggle menu">
-							{#snippet children()}
-								<Breadcrumb.Ellipsis class="size-4" />
-							{/snippet}
+							<Breadcrumb.Ellipsis class="size-4" />
 						</DropdownMenu.Trigger>
 						<DropdownMenu.Content align="start">
 							{#each items.slice(1, -2) as item}
@@ -58,9 +60,7 @@
 				{:else}
 					<Drawer.Root bind:open>
 						<Drawer.Trigger aria-label="Toggle Menu">
-							{#snippet children()}
-								<Breadcrumb.Ellipsis class="size-4" />
-							{/snippet}
+							<Breadcrumb.Ellipsis class="size-4" />
 						</Drawer.Trigger>
 						<Drawer.Content>
 							<Drawer.Header class="text-left">
@@ -75,9 +75,7 @@
 								{/each}
 							</div>
 							<Drawer.Footer class="pt-4">
-								{#snippet children()}
-									<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close>
-								{/snippet}
+								<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close>
 							</Drawer.Footer>
 						</Drawer.Content>
 					</Drawer.Root>
@@ -88,20 +86,18 @@
 
 		{#each items.slice(-ITEMS_TO_DISPLAY + 1) as item, i (i)}
 			<Breadcrumb.Item>
-				{#snippet children()}
-					{#if item.href}
-						<Breadcrumb.Link href={item.href} class="max-w-20 truncate md:max-w-none">
-							{item.label}
-						</Breadcrumb.Link>
-						{#if i !== items.length - 1}
-							<Breadcrumb.Separator />
-						{/if}
-					{:else}
-						<Breadcrumb.Page class="max-w-20 truncate md:max-w-none">
-							{item.label}
-						</Breadcrumb.Page>
+				{#if item.href}
+					<Breadcrumb.Link href={item.href} class="max-w-20 truncate md:max-w-none">
+						{item.label}
+					</Breadcrumb.Link>
+					{#if i !== items.length - 1}
+						<Breadcrumb.Separator />
 					{/if}
-				{/snippet}
+				{:else}
+					<Breadcrumb.Page class="max-w-20 truncate md:max-w-none">
+						{item.label}
+					</Breadcrumb.Page>
+				{/if}
 			</Breadcrumb.Item>
 		{/each}
 	</Breadcrumb.List>

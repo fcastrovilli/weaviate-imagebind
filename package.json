@@ -19,9 +19,10 @@
 		"@tailwindcss/container-queries": "^0.1.1",
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
+		"@types/d3": "^7.4.3",
 		"@types/eslint": "^9.6.0",
 		"autoprefixer": "^10.4.20",
-		"bits-ui": "1.0.0-next.49",
+		"bits-ui": "1.0.0-next.51",
 		"clsx": "^2.1.1",
 		"eslint": "^9.7.0",
 		"eslint-config-prettier": "^9.1.0",
@@ -50,8 +51,10 @@
 	},
 	"dependencies": {
 		"@tanstack/table-core": "^8.20.5",
+		"d3": "^7.9.0",
 		"fs": "0.0.1-security",
 		"jszip": "^3.10.1",
+		"music-metadata": "^10.5.1",
 		"runed": "^0.15.3",
 		"sharp": "^0.33.5",
 		"weaviate-client": "^3.2.2"

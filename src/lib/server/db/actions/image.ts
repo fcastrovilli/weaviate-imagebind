@@ -29,7 +29,8 @@ export const uploadImagesAction: Action = async ({ request }) => {
 			return {
 				title: titles[index] || imageBlob.name,
 				image: buffer.toString('base64'),
-				imageMetadata
+				imageMetadata,
+				createdAt: new Date().toISOString()
 			};
 		})
 	);

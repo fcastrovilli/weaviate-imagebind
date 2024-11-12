@@ -16,6 +16,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import DataTableToolbar from './data-table-toolbar.svelte';
 	import type { WeaviateNonGenericObject } from 'weaviate-client';
+	import { formatDate } from '$lib/utils/date';
 
 	type DataTableProps = {
 		columns: ColumnDef<WeaviateNonGenericObject, unknown>[];
@@ -34,10 +35,16 @@
 
 	// State
 	let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: 8 });
-	let sorting = $state<SortingState>([]);
+	let sorting = $state<SortingState>([
+		{
+			id: 'createdAt',
+			desc: true
+		}
+	]);
 	let columnFilters = $state<ColumnFiltersState>([]);
 	let columnVisibility = $state<VisibilityState>({
-		uuid: false
+		uuid: false,
+		createdAt: true
 	});
 	let rowSelection = $state<RowSelectionState>({});
 
@@ -106,7 +113,7 @@
 </script>
 
 <div class="w-full space-y-4">
-	<DataTableToolbar {table} {fileType} {mimeType} />
+	<DataTableToolbar {table} {fileType} />
 
 	<div class="rounded-md border">
 		<Table.Root>
@@ -131,7 +138,11 @@
 					<Table.Row data-state={row.getIsSelected() && 'selected'}>
 						{#each row.getVisibleCells() as cell (cell.id)}
 							<Table.Cell>
-								<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+								{#if cell.column.id === 'createdAt'}
+									{formatDate(cell.getValue() as string)}
+								{:else}
+									<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+								{/if}
 							</Table.Cell>
 						{/each}
 					</Table.Row>

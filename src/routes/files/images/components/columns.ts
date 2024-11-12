@@ -6,6 +6,7 @@ import DataTableCheckbox from '$lib/components/ui/data-table/data-table-checkbox
 import ImagePreviewDialog from './image-preview-dialog.svelte';
 import DataTableActions from '$lib/components/ui/data-table/data-table-actions.svelte';
 import DataTableTitleButton from '$lib/components/ui/data-table/data-table-title-button.svelte';
+import DataTableDateButton from '$lib/components/ui/data-table/data-table-date-button.svelte';
 
 export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 	{
@@ -87,5 +88,14 @@ export const columns: ColumnDef<WeaviateNonGenericObject>[] = [
 		},
 		enableSorting: false,
 		enableHiding: true
+	},
+	{
+		id: 'createdAt',
+		accessorFn: (row) => row.properties.createdAt as string,
+		header: ({ column }) => {
+			return renderComponent(DataTableDateButton, {
+				onclick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+			});
+		}
 	}
 ];

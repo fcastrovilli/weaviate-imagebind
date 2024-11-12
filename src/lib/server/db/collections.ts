@@ -1,5 +1,6 @@
 import { getClient } from '.';
 import type { CollectionInterface } from '$lib/types';
+import type { Collection } from 'weaviate-client';
 
 export const getCollections = async () => {
 	const client = await getClient();
@@ -58,6 +59,17 @@ export const getCollection = async (name: string) => {
 		return null;
 	}
 	return client.collections.get(cleanedName);
+};
+
+export const getCollectionProperties = async (collection: Collection<undefined, string>) => {
+	const config = await collection.config.get();
+	const properties: string[] = [];
+
+	config.properties.forEach((prop) => {
+		properties.push(prop.name);
+	});
+
+	return properties;
 };
 
 export const getCollectionClient = async (name: string): Promise<CollectionInterface | null> => {

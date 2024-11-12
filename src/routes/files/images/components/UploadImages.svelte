@@ -8,6 +8,10 @@
 	import { toast } from 'svelte-sonner';
 	import { onDestroy } from 'svelte';
 	import { activeCollection } from '$lib/stores';
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+
+	let currentTab: Writable<'table' | 'upload'> = getContext('currentTab');
 
 	let fileInput: HTMLInputElement;
 	let isUploading = $state(false);
@@ -26,11 +30,22 @@
 	}
 
 	function updatePreviews(fileList: FileList) {
-		previews = Array.from(fileList).map((file) => ({
+		const filesArray = Array.from(fileList).slice(0, 20);
+
+		const dataTransfer = new DataTransfer();
+		filesArray.forEach((file) => dataTransfer.items.add(file));
+		files = dataTransfer.files;
+		fileInput.files = dataTransfer.files;
+
+		previews = filesArray.map((file) => ({
 			name: file.name,
 			url: URL.createObjectURL(file),
 			title: file.name.replace(/\.[^/.]+$/, '')
 		}));
+
+		if (fileList.length > 20) {
+			toast.error('Maximum 20 files allowed. Extra files were removed.');
+		}
 	}
 
 	function handleDrop(e: DragEvent) {
@@ -39,17 +54,14 @@
 		dragActive = false;
 
 		if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-			files = e.dataTransfer.files;
-			fileInput.files = e.dataTransfer.files;
-			updatePreviews(files);
+			updatePreviews(e.dataTransfer.files);
 		}
 	}
 
 	function handleChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (target.files) {
-			files = target.files;
-			updatePreviews(files);
+			updatePreviews(target.files);
 		}
 	}
 
@@ -115,6 +127,7 @@
 						isUploading = false;
 						clearFiles();
 						update();
+						$currentTab = 'table';
 					} else {
 						toast.error('Images upload failed');
 						isUploading = false;
@@ -133,6 +146,8 @@
 				class:border-primary={dragActive || fileCount > 0}
 				class:bg-muted={fileCount > 0}
 				class:hover:bg-muted={true}
+				class:opacity-50={isUploading}
+				aria-disabled={isUploading}
 				ondragenter={handleDrag}
 				ondragover={handleDrag}
 				ondragleave={handleDrag}
@@ -157,7 +172,7 @@
 									>{fileCount} file{fileCount === 1 ? '' : 's'} selected</span
 								>
 							{:else}
-								Drag & drop images here or click to select
+								Drag & drop images here or click to select (max 20 files)
 							{/if}
 						</p>
 						<p class="text-xs text-muted-foreground">Supported formats: PNG, JPG, GIF, WEBP</p>
@@ -166,10 +181,14 @@
 			</div>
 
 			{#if previews.length > 0}
-				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+				<div
+					class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"
+					class:animate-pulse={isUploading}
+				>
 					{#each previews as preview}
 						<div class="group relative rounded-md border bg-muted p-2">
 							<button
+								disabled={isUploading}
 								type="button"
 								class="absolute -right-2 -top-2 z-10 hidden rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90 group-hover:block"
 								onclick={() => removeFile(preview.name)}
@@ -203,7 +222,13 @@
 						</div>
 					{/each}
 				</div>
-				<Button type="button" variant="outline" class="w-full" onclick={() => clearFiles()}>
+				<Button
+					disabled={previews.length === 0 || isUploading}
+					type="button"
+					variant="outline"
+					class="w-full"
+					onclick={() => clearFiles()}
+				>
 					<X class="mr-2 h-4 w-4" />
 					Clear Selection
 				</Button>

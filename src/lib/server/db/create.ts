@@ -54,6 +54,13 @@ export async function createCollection({ name, description, mediaTypes }: Create
 				description: 'Title of the content',
 				indexFilterable: true,
 				indexSearchable: true
+			},
+			{
+				name: 'createdAt',
+				dataType: 'date',
+				description: 'Creation date of the content',
+				indexFilterable: true,
+				indexSearchable: false
 			}
 		];
 
@@ -162,20 +169,20 @@ export async function createCollection({ name, description, mediaTypes }: Create
 		// Configure vectorizer
 		const vectorizerConfig = {
 			name: 'title_vector',
-			textFields: [{ name: 'title', weight: 0.1 }],
+			textFields: [{ name: 'title', weight: 0.2 }],
 			...(mediaTypes.includes('audio') && {
-				audioFields: [{ name: 'audio', weight: 0.9 }]
+				audioFields: [{ name: 'audio', weight: 0.8 }]
 			}),
 			...(mediaTypes.includes('image') && {
-				imageFields: [{ name: 'image', weight: 0.9 }]
+				imageFields: [{ name: 'image', weight: 0.8 }]
 			}),
 			...(mediaTypes.includes('video') && {
-				videoFields: [{ name: 'video', weight: 0.9 }]
+				videoFields: [{ name: 'video', weight: 0.8 }]
 			}),
 			...(mediaTypes.includes('text') && {
 				textFields: [
-					{ name: 'title', weight: 0.1 },
-					{ name: 'text', weight: 0.9 }
+					{ name: 'title', weight: 0.2 },
+					{ name: 'text', weight: 0.8 }
 				]
 			})
 		};
