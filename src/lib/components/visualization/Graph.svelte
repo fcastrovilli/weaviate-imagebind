@@ -195,7 +195,7 @@
 <div class="relative">
 	<svg
 		bind:this={svg}
-		class="h-full min-h-[650px] w-full rounded-lg border border-border bg-[#111]"
+		class="h-full max-h-[750px] min-h-[600px] w-full rounded-lg border border-border bg-[#111]"
 	/>
 
 	{#if hoveredNode && hoveredObject}
