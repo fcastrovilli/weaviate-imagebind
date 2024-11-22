@@ -1,6 +1,6 @@
 import { getCollection } from '$lib/server/db/collections';
-import { getFileFromUUID } from '$lib/server/db/files';
-import type { Collection, WeaviateNonGenericObject, WeaviateObject } from 'weaviate-client';
+// import { getFileFromUUID } from '$lib/server/db/files';
+// import type { Collection, WeaviateNonGenericObject, WeaviateObject } from 'weaviate-client';
 import type { Actions } from './$types';
 
 export const actions = {
@@ -38,18 +38,17 @@ export const actions = {
 			hybridSearch = await collection.query.hybrid(base64String, {
 				[`${fileType}Fields`]: [{ name: fileType, weight: 0.8 }],
 				...(query && { textFields: [{ name: 'text', weight: 0.2 }] }),
+				returnMetadata: ['score'],
 				limit: 5
 			});
 		} else {
 			hybridSearch = await collection.query.hybrid(query, {
-				limit: 5
+				limit: 5,
+				returnMetadata: ['score']
 			});
 		}
 
-		return await processSearchResults(
-			collection,
-			hybridSearch.objects as WeaviateObject<undefined>[]
-		);
+		return { status: 200, result: hybridSearch.objects };
 	},
 
 	nearText: async ({ request, cookies }) => {
@@ -77,13 +76,11 @@ export const actions = {
 		}
 
 		const nearTextSearch = await collection.query.nearText(query, {
-			limit: 5
+			limit: 5,
+			returnMetadata: ['distance']
 		});
 
-		return await processSearchResults(
-			collection,
-			nearTextSearch.objects as WeaviateObject<undefined>[]
-		);
+		return { status: 200, result: nearTextSearch.objects };
 	},
 
 	nearImage: async ({ request, cookies }) => {
@@ -114,13 +111,11 @@ export const actions = {
 		const base64String = Buffer.from(arrayBuffer).toString('base64');
 
 		const nearImageSearch = await collection.query.nearImage(base64String, {
-			limit: 5
+			limit: 5,
+			returnMetadata: ['distance']
 		});
 
-		return await processSearchResults(
-			collection,
-			nearImageSearch.objects as WeaviateObject<undefined>[]
-		);
+		return { status: 200, result: nearImageSearch.objects };
 	},
 
 	bm25: async ({ request, cookies }) => {
@@ -148,47 +143,45 @@ export const actions = {
 		}
 
 		const bm25Search = await collection.query.bm25(query, {
-			limit: 5
+			limit: 5,
+			returnMetadata: ['score']
 		});
 
-		return await processSearchResults(
-			collection,
-			bm25Search.objects as WeaviateObject<undefined>[]
-		);
+		return { status: 200, result: bm25Search.objects };
 	}
 } satisfies Actions;
 
-async function processSearchResults(
-	collection: Collection<undefined>,
-	objects: WeaviateObject<undefined>[]
-): Promise<{ status: number; result?: WeaviateNonGenericObject[]; error?: string }> {
-	try {
-		const files: WeaviateNonGenericObject[] = [];
+// async function processSearchResults(
+// 	collection: Collection<undefined>,
+// 	objects: WeaviateObject<undefined>[]
+// ): Promise<{ status: number; result?: WeaviateNonGenericObject[]; error?: string }> {
+// 	try {
+// 		const files: WeaviateNonGenericObject[] = [];
 
-		for (const obj of objects) {
-			const mediaType = obj.properties.imageMetadata
-				? 'imageMetadata'
-				: obj.properties.audioMetadata
-					? 'audioMetadata'
-					: obj.properties.videoMetadata
-						? 'videoMetadata'
-						: null;
+// 		for (const obj of objects) {
+// 			const mediaType = obj.properties.imageMetadata
+// 				? 'imageMetadata'
+// 				: obj.properties.audioMetadata
+// 					? 'audioMetadata'
+// 					: obj.properties.videoMetadata
+// 						? 'videoMetadata'
+// 						: null;
 
-			const strippedMediaType = mediaType?.replace('Metadata', '');
-			if (!strippedMediaType) continue;
-			const file = await getFileFromUUID(collection, obj.uuid, strippedMediaType);
-			if (file) files.push(file);
-		}
+// 			const strippedMediaType = mediaType?.replace('Metadata', '');
+// 			if (!strippedMediaType) continue;
+// 			const file = await getFileFromUUID(collection, obj.uuid, strippedMediaType);
+// 			if (file) files.push(file);
+// 		}
 
-		return {
-			status: 200,
-			result: files
-		};
-	} catch (error) {
-		console.error('Search processing error:', error);
-		return {
-			status: 500,
-			error: 'Error processing search results'
-		};
-	}
-}
+// 		return {
+// 			status: 200,
+// 			result: files
+// 		};
+// 	} catch (error) {
+// 		console.error('Search processing error:', error);
+// 		return {
+// 			status: 500,
+// 			error: 'Error processing search results'
+// 		};
+// 	}
+// }

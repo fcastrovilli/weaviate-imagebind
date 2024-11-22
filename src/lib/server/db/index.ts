@@ -3,6 +3,12 @@ import weaviate, { type WeaviateClient } from 'weaviate-client';
 let client: WeaviateClient | null = null;
 
 export const getClient = async () => {
+	if (client) {
+		const isLive = await client.isLive();
+		if (!isLive) {
+			client = null;
+		}
+	}
 	if (!client) {
 		client = await weaviate.connectToCustom({
 			httpHost: '192.168.1.120',
